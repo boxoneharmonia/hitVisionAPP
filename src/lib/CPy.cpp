@@ -210,8 +210,7 @@ void CPyThread()
                         1, 0, 0,
                         1, 1, 0,
                         0, 1, 0,
-                        1, 0, 0,
-                        1, 1, 0};
+                        1, 0, 0};
 
                     // 相机内参
                     cv::Mat cameraMatrix = (cv::Mat_<float>(3, 3) << 600.f, 0.f, 320.f,
