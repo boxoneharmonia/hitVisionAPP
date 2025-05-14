@@ -1,0 +1,110 @@
+import("//thirdparty/poco/lib/aarch64/Poco_aarch64.gni")
+import("//thirdparty/camera/lib/aarch64/Camera_aarch64.gni")
+import("//thirdparty/dds/lib/aarch64/dds_aarch64.gni")
+import("//lib_path.gni")
+
+# static_library("UDPClient")
+# {
+#   if (target_cpu == "x64")
+#   {
+
+#   }
+#   else if (target_cpu == "arm64")
+#   {
+#     # lib_dirs = 
+#     # libs = 
+#   }
+#   deps = thirdparty_libs
+#   include_dirs = src_include + thirdparty_include
+#   sources = src_UDPClient
+# }
+
+static_library("TCPClient")
+{
+  if (target_cpu == "x64")
+  {
+
+  }
+  else if (target_cpu == "arm64")
+  {
+    # lib_dirs = 
+    # libs = 
+  }
+  deps = thirdparty_libs
+  include_dirs = src_include + thirdparty_include
+  sources = src_TCPClient
+}
+
+static_library("Pycaller")
+{
+  if (target_cpu == "x64")
+  {
+
+  }
+  else if (target_cpu == "arm64")
+  {
+    lib_dirs = thirdparty_python_lib_aarch64
+    libs = ["python3.8"]
+  }
+  deps = thirdparty_libs
+  include_dirs = src_include + thirdparty_include
+  sources = src_CPy
+}
+
+static_library("Camera")
+{
+  if (target_cpu == "x64")
+  {
+    lib_dirs = thirdparty_opencv_lib_x64 + thirdparty_camera_lib_x64
+    libs = ["opencv_world"] + Camera_x64
+  }
+  else if (target_cpu == "arm64")
+  {
+    lib_dirs = thirdparty_opencv_lib_aarch64 + thirdparty_camera_lib_aarch64
+    libs = ["opencv_world"] + Camera_aarch64
+  }
+  deps = thirdparty_libs
+  include_dirs = src_include + thirdparty_include
+  sources = src_Camera
+}
+
+static_library("DDS")
+{
+  if (target_cpu == "x64")
+  {
+
+  }
+  else if (target_cpu == "arm64")
+  {
+    lib_dirs = thirdparty_dds_lib_aarch64
+    libs = dds_aarch64
+  }
+  deps = thirdparty_libs + ["//src:cJSON"]
+  include_dirs = src_include + thirdparty_include
+  sources = src_dds
+}
+
+static_library("cJSON")
+{
+    if (target_cpu == "x64")
+  {
+
+  }
+  else if (target_cpu == "arm64")
+  {
+    lib_dirs = thirdparty_dds_lib_aarch64
+    libs = dds_aarch64
+  }
+  deps = thirdparty_libs
+  include_dirs = src_include + thirdparty_include
+  sources = src_cJSON
+}
+
+executable("hitVisionNavi")
+{
+  libs = ["pthread"]
+  include_dirs = src_include + thirdparty_include
+  deps = thirdparty_libs + src_libs
+  sources = ["main.cpp"]
+}
+

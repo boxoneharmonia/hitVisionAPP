@@ -1,0 +1,64 @@
+# Auto-generated GN include
+
+thirdparty_libs = [
+]
+
+src_libs = [
+  # "//src:UDPClient",
+  "//src:TCPClient",
+  "//src:Pycaller",
+  "//src:Camera",
+  "//src:DDS",
+  "//src:cJSON",
+]
+
+thirdparty_include = [
+  "//thirdparty/camera/include",
+  "//thirdparty/dds/include",
+  "//thirdparty/opencv/include",
+  # "//thirdparty/poco/include",
+  "//thirdparty/python/include",
+]
+
+src_include = [
+  "//src/include",
+]
+
+thirdparty_opencv_lib_aarch64 = [
+  "//thirdparty/opencv/lib/aarch64",
+]
+
+thirdparty_opencv_lib_x64 = [
+  "//thirdparty/opencv/lib/x64",
+]
+
+thirdparty_camera_lib_aarch64 = [
+  "//thirdparty/camera/lib/aarch64",
+]
+
+thirdparty_camera_lib_x64 = [
+  "//thirdparty/camera/lib/x64",
+]
+
+thirdparty_poco_lib_aarch64 = [
+  "//thirdparty/poco/lib/aarch64",
+]
+
+thirdparty_python_lib_aarch64 = [
+  "//thirdparty/python/lib/aarch64",
+]
+
+thirdparty_dds_lib_aarch64 = [
+  "//thirdparty/dds/lib/aarch64",
+]
+
+src_lib = [
+  "//src/lib",
+]
+
+src_dds = [ "//src/lib/dds.cpp" ]
+src_TCPClient = [ "//src/lib/TCPClient.cpp" ]
+src_UDPClient = [ "//src/lib/UDPClient.cpp" ]
+src_CPy = [ "//src/lib/CPy.cpp" ]
+src_cJSON = [ "//src/lib/cJSON.c" ]
+src_Camera = [ "//src/lib/Camera.cpp" ]

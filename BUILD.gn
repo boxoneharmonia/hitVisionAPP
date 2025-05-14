@@ -1,0 +1,11 @@
+group("all") {
+  deps = [
+    "//src:Camera",
+    # "//src:UDPClient",
+    "//src:TCPClient",
+    "//src:Pycaller",
+    "//src:hitVisionNavi",
+    "//src:DDS",
+    "//src:cJSON",
+  ]
+}

@@ -1,0 +1,101 @@
+# =============================================================================
+# PLATFORM SELECTION
+# =============================================================================
+
+if (target_os == "") 
+{
+  target_os = host_os
+}
+
+if (target_cpu == "") 
+{
+  target_cpu = host_cpu
+}
+
+if (current_cpu == "") 
+{
+  current_cpu = target_cpu
+}
+if (current_os == "") 
+{
+  current_os = target_os
+}
+
+# =============================================================================
+# OS DEFINITIONS
+# =============================================================================
+
+is_linux = current_os == "linux"
+
+is_posix = is_linux 
+
+# =============================================================================
+# BUILD FLAGS
+# =============================================================================
+
+declare_args() {
+  # Debug build
+  is_debug = false
+}
+
+declare_args() {
+  if (is_posix) {
+    c_std = "gnu17"
+    cc_std = "gnu++17"
+  }
+}
+
+declare_args() {
+  sysroot = ""
+}
+# ==============================================================================
+# TOOLCHAIN SETUP
+# ==============================================================================
+
+if (is_linux) 
+{
+  set_default_toolchain("//build/toolchain/linux:gcc")
+}
+else 
+{
+  assert(false, "Unsupported target_os: $target_os")
+}
+
+# =============================================================================
+# TARGET DEFAULTS
+# =============================================================================
+
+_compile_defaults = [
+  "//build/config:default",
+  "//build/config:c_std",
+  "//build/config:cc_std",
+]
+
+if (is_posix) {
+  _compile_defaults += [
+    "//build/config/posix:default",
+    "//build/config/posix:optmize",
+    "//build/config/posix:target_arch",
+  ]
+}
+
+set_defaults("executable") {
+  configs = _compile_defaults
+  if (is_posix) {
+    configs += [ "//build/config/posix:rpath" ]
+  }
+}
+set_defaults("static_library") {
+  configs = _compile_defaults
+}
+set_defaults("shared_library") {
+  configs = _compile_defaults
+}
+set_defaults("source_set") {
+  configs = _compile_defaults
+}
+
+# =============================================================================
+# IMPORTS
+# =============================================================================
+

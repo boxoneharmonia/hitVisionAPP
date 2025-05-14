@@ -1,0 +1,8 @@
+out
+visionApp
+hitVisionNavi.tar.gz
+thirdparty/camera/lib
+thirdparty/dds/lib
+thirdparty/opencv/lib
+thirdparty/poco/
+thirdparty/python/lib

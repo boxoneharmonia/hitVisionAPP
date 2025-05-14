@@ -1,0 +1,19 @@
+# =============================================================================
+# Default
+# =============================================================================
+
+config("default") {
+  if (is_debug) {
+    defines = [ "DEBUG"  ]
+  } else {
+    defines = [ "NDEBUG" ]
+  }
+}
+
+config("c_std") {
+    cflags_c = [ "-std=$c_std" ]
+}
+
+config("cc_std") {
+    cflags_cc = [ "-std=$cc_std" ]
+}
