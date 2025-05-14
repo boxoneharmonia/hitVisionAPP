@@ -280,10 +280,10 @@ void myCallbackFunction(int type, const void* data)
 		imageBit = (temp[16] & BIT(7)) ? 1 : 0;
 		dataTransBit = (temp[16] & BIT(6)) ? 1 : 0;
 		poseBit = (temp[16] & BIT(5)) ? 1 : 0;
-		controlBit = (temp[16] & BIT(4)) ? 1 : 0;
-		dExpBit = (temp[16] & BIT(3)) ? 1 : 0;
-		dGainBit = (temp[16] & BIT(2)) ? 1 : 0;
-		dFrameRateBit = (temp[16] & BIT(1)) ? 1 : 0;
+		controlBit = ((temp[16] >> 3) & 0x03);
+		dExpBit = (temp[16] & BIT(2)) ? 1 : 0;
+		dGainBit = (temp[16] & BIT(1)) ? 1 : 0;
+		dFrameRateBit = (temp[16] & BIT(0)) ? 1 : 0;
 
 		// 第2个字节
 		dExp = (temp[17] >> 4) & 0x0F;
