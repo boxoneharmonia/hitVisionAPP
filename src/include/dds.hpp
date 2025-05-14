@@ -16,7 +16,7 @@
 inline bool imageBit = false; // 成像 控制位
 inline bool dataTransBit = false; // 数传 控制位
 inline bool poseBit = false; // 位姿估计 控制位
-inline bool controlBit = false; // 智能控制 控制位
+inline uint8_t controlBit = false; // 智能控制 控制位
 inline bool dExpBit = false; // 曝光时间
 inline bool dGainBit = false; // 增益
 inline bool dFrameRateBit = false; // 帧率
