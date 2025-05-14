@@ -255,7 +255,54 @@ void CPyThread()
                         std::cout << "solvePnP 失败！" << std::endl;
                     }
 
-                    cout << "Infer OK: conf=" << confidence << ", bbox.size=" << bbox.size() << ", keypoints.size=" << keypoints.size() << endl;
+                    cv::Mat R;
+                    cv::Rodrigues(rvec, R); // rvec 是 3x1 旋转向量
+
+                    float Quat[4];
+
+                    float Trace = R.at<double>(0, 0) + R.at<double>(1, 1) + R.at<double>(2, 2);
+                    if (Trace >= 0.0)
+                    {
+                        Quat[0] = sqrt(1.0 + Trace) / 2.0;
+                        Quat[1] = (R.at<double>(1, 2) - R.at<double>(2, 1)) / Quat[0] / 4.0;
+                        Quat[2] = (R.at<double>(2, 0) - R.at<double>(0, 2)) / Quat[0] / 4.0;
+                        Quat[3] = (R.at<double>(0, 1) - R.at<double>(1, 0)) / Quat[0] / 4.0;
+                    }
+                    else
+                    {
+                        if ((R.at<double>(1, 1) > R.at<double>(0, 0)) && (R.at<double>(1, 1) > R.at<double>(2, 2)))
+                        {
+                            Quat[2] = sqrt(1.0 - R.at<double>(0, 0) + R.at<double>(1, 1) - R.at<double>(2, 2)) / 2.0;
+                            Quat[0] = (R.at<double>(2, 0) - R.at<double>(0, 2)) / Quat[2] / 4.0;
+                            Quat[1] = (R.at<double>(1, 0) + R.at<double>(0, 1)) / Quat[2] / 4.0;
+                            Quat[3] = (R.at<double>(2, 1) + R.at<double>(1, 2)) / Quat[2] / 4.0;
+                        }
+                        else if (R.at<double>(2, 2) > R.at<double>(0, 0))
+                        {
+                            Quat[3] = sqrt(1.0 - R.at<double>(0, 0) - R.at<double>(1, 1) + R.at<double>(2, 2)) / 2.0;
+                            Quat[0] = (R.at<double>(0, 1) - R.at<double>(1, 0)) / Quat[3] / 4.0;
+                            Quat[1] = (R.at<double>(2, 0) + R.at<double>(0, 2)) / Quat[3] / 4.0;
+                            Quat[2] = (R.at<double>(2, 1) + R.at<double>(1, 2)) / Quat[3] / 4.0;
+                        }
+                        else
+                        {
+                            Quat[1] = sqrt(1.0 + R.at<double>(0, 0) - R.at<double>(1, 1) - R.at<double>(2, 2)) / 2.0;
+                            Quat[0] = (R.at<double>(1, 2) - R.at<double>(2, 1)) / Quat[1] / 4.0;
+                            Quat[2] = (R.at<double>(1, 0) + R.at<double>(0, 1)) / Quat[1] / 4.0;
+                            Quat[3] = (R.at<double>(2, 0) + R.at<double>(0, 2)) / Quat[1] / 4.0;
+                        }
+                    }
+
+                    for (i = 0; i < 4; i++)
+                    {
+                        Quat[i] = Quat[i] / sqrt(Quat[0] * Quat[0] + Quat[1] * Quat[1] + Quat[2] * Quat[2] + Quat[3] * Quat[3]);
+                    }
+                    std::cout << "四元数 quat: \n"
+                              << "[" << Quat[0] << ", " << Quat[1] << ", " << Quat[2] << ", " << Quat[3] << "]"
+                              << std::endl;
+
+                    cout
+                        << "Infer OK: conf=" << confidence << ", bbox.size=" << bbox.size() << ", keypoints.size=" << keypoints.size() << endl;
                     {
                         std::lock_guard<std::mutex> lock(ddsMutex);
                         packDectResult(confidence, bbox, dectResult);
