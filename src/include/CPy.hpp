@@ -64,11 +64,11 @@ inline void packDectResult(float conf, const std::vector<float>& bbox, uint8_t (
     out_bytes[2] = ((q_xmax & 0x0F) << 4) | (q_ymax & 0x0F);
 }
 
-inline void packPoseResult(const std::vector<float>& keypoints, float (&out_bytes)[7])
+inline void packPoseResult(const std::vector<float>& pose, float (&out_bytes)[7])
 {
-    size_t count = std::min(keypoints.size(), size_t(7));
+    size_t count = std::min(pose.size(), size_t(7));
     for (size_t i = 0; i < count; ++i) {
-        out_bytes[i] = keypoints[i];
+        out_bytes[i] = pose[i];
     }
     for (size_t i = count; i < 7; ++i) {
         out_bytes[i] = 0.0f;

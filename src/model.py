@@ -52,15 +52,15 @@ def load_model():
     context_1 = engine_1.create_execution_context()
     bindings_1, inputs_1, outputs_1 = setup_io(engine_1)
 
-    print("Loading engine_2...")
-    engine_2 = load_engine("model_2.engine")
-    context_2 = engine_2.create_execution_context()
-    bindings_2, inputs_2, outputs_2 = setup_io(engine_2)
+    # print("Loading engine_2...")
+    # engine_2 = load_engine("model_2.engine")
+    # context_2 = engine_2.create_execution_context()
+    # bindings_2, inputs_2, outputs_2 = setup_io(engine_2)
 
     stream = cuda.Stream()
     print("Models loaded.")
         
-def preprocess(image, size=224):
+def preprocess(image, size=256):
     try:
         resample = Image.Resampling.LANCZOS  # Pillow ≥ 9.1.0
     except AttributeError:
@@ -85,11 +85,11 @@ def crop_roi(image, bbox, size=384):
     roi = np.array(roi).transpose((2, 0, 1)).astype(np.float32) / 255.0
     return np.expand_dims(roi, axis=0)
 
-def infer(path):
-    global engine_1, engine_2, context_1, context_2, bindings_1, bindings_2, inputs_1, inputs_2, outputs_1, outputs_2, stream
+def infer_1(path):
+    global engine_1, context_1, bindings_1, inputs_1, outputs_1, stream
 
     image = Image.open(path).convert("RGB")
-    resized = preprocess(image, size=224)
+    resized = preprocess(image, size=256)
 
     start = time.time()
 
@@ -107,31 +107,33 @@ def infer(path):
     stream.synchronize()
 
     confidence = float(output_data_1[0].squeeze())
-    bbox = (output_data_1[1].reshape(-1) / 224.0).tolist()
+    bbox = (output_data_1[1].reshape(-1) / 256.0).tolist()
+    tmc = (output_data_1[2].reshape(-1)).tolist()
 
     # -------- Inference 2 --------
-    roi = crop_roi(image, bbox, 384)
+    # roi = crop_roi(image, bbox, 384)
 
-    input_host_2, input_device_2 = inputs_2[0]
-    input_host_2[:] = roi.ravel()
+    # input_host_2, input_device_2 = inputs_2[0]
+    # input_host_2[:] = roi.ravel()
 
-    cuda.memcpy_htod_async(input_device_2, input_host_2, stream)
-    context_2.execute_async_v2(bindings=bindings_2, stream_handle=stream.handle)
+    # cuda.memcpy_htod_async(input_device_2, input_host_2, stream)
+    # context_2.execute_async_v2(bindings=bindings_2, stream_handle=stream.handle)
 
-    output_data_2 = []
-    for host_mem, device_mem in outputs_2:
-        cuda.memcpy_dtoh_async(host_mem, device_mem, stream)
-        output_data_2.append(host_mem)
-    stream.synchronize()
+    # output_data_2 = []
+    # for host_mem, device_mem in outputs_2:
+    #     cuda.memcpy_dtoh_async(host_mem, device_mem, stream)
+    #     output_data_2.append(host_mem)
+    # stream.synchronize()
 
-    keypoints = output_data_2[0].reshape(-1).tolist()
+    # keypoints = output_data_2[0].reshape(-1).tolist()
 
     elapsed = time.time() - start
     bbox_str = [f'"{x:.4f}"' for x in bbox]
-    keypoints_str = [f'{x:.4f}' for x in keypoints]
-    print(f'{path}: {elapsed*1000:.2f} ms, confidence: {confidence:.4f}, bbox: {bbox_str}, keypoints: {keypoints_str}')
+    tmc_str = [f'"{x:.4f}"' for x in tmc]
+    # keypoints_str = [f'{x:.4f}' for x in keypoints]
+    print(f'{path}: {elapsed*1000:.2f} ms, confidence: {confidence:.4f}, bbox: {bbox_str}, tmc: {tmc_str}')
 
-    return confidence, bbox, keypoints
+    return confidence, bbox, tmc
 
 def release():
     global engine_1, engine_2, context_1, context_2, bindings_1, bindings_2, inputs_1, inputs_2, outputs_1, outputs_2, stream
