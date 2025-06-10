@@ -15,6 +15,7 @@
 #include <opencv2/opencv.hpp>
 
 inline std::atomic_bool visionRunning = false;
+inline std::atomic_uint8_t controlRunning = 0x00;
 inline uint8_t dectResult[3] = {0};
 inline float poseResult[10] = {0};
 inline uint8_t flyWheel[4] = {0};
@@ -45,6 +46,7 @@ PyObject* toPyTuple(const std::vector<std::string>& vec);
 PyObject* toPyTuple(const std::string& str);
 
 void CPyThread();
+void ControlThread();
 
 inline uint8_t quantizeToInt4(float value) {
     value = std::clamp(value, 0.0f, 1.0f);
@@ -71,5 +73,15 @@ inline void packPoseResult(const std::array<float, 3>& tmc, const std::array<flo
     std::copy(vel.begin(), vel.end(), out_bytes + offset); offset += vel.size();
     std::copy(pos.begin(), pos.end(), out_bytes + offset); offset += pos.size();
 } 
+
+inline void packFlyWheel(const std::vector<float>& result, uint8_t (&out_bytes)[4]) {
+    size_t count = std::min(result.size(), size_t(4));
+    for (size_t i = 0; i < count; ++i) {
+        out_bytes[i] = static_cast<uint8_t>(result[i]);
+    }
+    for (size_t i = count; i < 4; ++i) {
+        out_bytes[i] = 0.0f;
+    }
+}
 
 #endif // CPY_HPP

@@ -18,6 +18,7 @@ int main()
     // UDPSocketRunning = false;
     TCPSocketRunning = false;
     visionRunning = false;
+    controlRunning = 0x00;
 
     thread t1(writeThread);
     thread t2(readThread);
@@ -25,6 +26,7 @@ int main()
     thread t3(TCPThread);
     thread t4(DDSSubThread);
     thread t5(CPyThread);
+    thread t6(ControlThread);
 
     DDSPub_t* pub = DDSPub_create();
     DDSPub_set_domain_id(pub, 1);
@@ -95,10 +97,9 @@ int main()
             const float tmp2[10] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
             memcpy(poseResult, tmp2, sizeof(tmp2));
         }
-        if (controlBit)
+        if (controlBit != 0)
         {
-            const uint8_t tmp3[4] = {0xFF, 0xFF, 0xFF, 0xFF};
-            memcpy(flyWheel, tmp3, sizeof(tmp3));
+            controlRunning = controlBit;
         }
         else
         {

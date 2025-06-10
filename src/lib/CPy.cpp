@@ -203,3 +203,69 @@ void CPyThread()
         }
     }
 }
+
+PyObject* toPyList(const vector<float>& vec) 
+{
+    PyObject* pyList = PyList_New(vec.size());
+    for (size_t i = 0; i < vec.size(); ++i) 
+    {
+        PyObject* item = PyFloat_FromDouble(vec[i]);
+        PyList_SetItem(pyList, i, item); 
+        Py_DECREF(item);
+    }
+    return pyList;
+}
+
+vector<float> pyListToVector(PyObject* listObj) 
+{
+    vector<float> result;
+
+    Py_ssize_t len = PyList_Size(listObj);
+    result.reserve(len);
+    
+    for (Py_ssize_t i = 0; i < len; ++i) 
+    {
+        PyObject* item = PyList_GetItem(listObj, i);
+        if (PyFloat_Check(item)) 
+        {
+            result.push_back(PyFloat_AsDouble(item));
+        } 
+        Py_DECREF(item);
+    }
+    return result;
+}
+
+void ControlThread() {
+    const string baseDir = getExecutableDir();
+    PyCaller py(baseDir, "control");
+    py.callFunction("load_model");
+    while (1)
+    {
+        if (controlRunning == 0x10)
+        {
+            vector<float> inputVec(7);
+            inputVec.assign({0.984536f, -0.00566f, 0.15888f, -0.073557f, 0.0002701f, -0.000227f, 0.0003019f});
+            PyObject *pyInput = toPyList(inputVec);
+            PyObject *args = PyTuple_Pack(1, pyInput); 
+            PyObject *ret = py.callFunctionWithRet("control_mode2", args);
+            Py_DECREF(args);
+
+            vector<float> outputVec;
+            if (ret && PyList_Check(ret) && PyList_Size(ret) == 4) 
+            {
+                outputVec = pyListToVector(ret);
+            } 
+            
+            Py_DECREF(ret);
+            Py_DECREF(pyInput);
+            {
+                std::lock_guard<std::mutex> lock(ddsMutex);
+                packFlyWheel(outputVec, flyWheel);
+            }
+        }
+        else
+        {
+            this_thread::sleep_for(chrono::seconds(1));
+        }
+    }
+}
