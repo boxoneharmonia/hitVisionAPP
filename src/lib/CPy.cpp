@@ -160,21 +160,24 @@ void CPyThread()
                     PyObject *bbox_list = PyTuple_GetItem(ret, 1); // list of floats
                     PyObject *tmc_list = PyTuple_GetItem(ret, 2); // list of floats
 
-                    vector<float> bbox, tmc;
+                    static array<float, 4> bbox;
+                    static array<float, 3> tmc;
+                    static array<float, 3> vel;
+                    static array<float, 4> pose;
 
-                    if (PyList_Check(bbox_list))
+                    if (PyList_Check(bbox_list) && PyList_Size(bbox_list) == 4)
                     {
-                        for (Py_ssize_t i = 0; i < PyList_Size(bbox_list); ++i)
+                        for (Py_ssize_t i = 0; i < 4; ++i)
                         {
-                            bbox.push_back(PyFloat_AsDouble(PyList_GetItem(bbox_list, i)));
+                            bbox[i] = PyFloat_AsDouble(PyList_GetItem(bbox_list, i));
                         }
                     }
 
-                    if (PyList_Check(tmc_list))
+                    if (PyList_Check(tmc_list) && PyList_Size(tmc_list) == 3)
                     {
-                        for (Py_ssize_t i = 0; i < PyList_Size(tmc_list); ++i)
+                        for (Py_ssize_t i = 0; i < 3; ++i)
                         {
-                            tmc.push_back(PyFloat_AsDouble(PyList_GetItem(tmc_list, i)));
+                            tmc[i] = PyFloat_AsDouble(PyList_GetItem(tmc_list, i));
                         }
                     }
 
@@ -184,7 +187,7 @@ void CPyThread()
                     {
                         std::lock_guard<std::mutex> lock(ddsMutex);
                         packDectResult(confidence, bbox, dectResult);
-                        packPoseResult(tmc, poseResult);
+                        packPoseResult(tmc, vel, pose, poseResult);
                     }
                 }
                 else

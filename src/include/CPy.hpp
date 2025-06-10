@@ -16,7 +16,7 @@
 
 inline std::atomic_bool visionRunning = false;
 inline uint8_t dectResult[3] = {0};
-inline float poseResult[7] = {0};
+inline float poseResult[10] = {0};
 inline uint8_t flyWheel[4] = {0};
 
 class PyCaller 
@@ -51,7 +51,7 @@ inline uint8_t quantizeToInt4(float value) {
     return static_cast<uint8_t>(value * 15.0f + 0.5f); // round to nearest
 }
 
-inline void packDectResult(float conf, const std::vector<float>& bbox, uint8_t (&out_bytes)[3]) 
+inline void packDectResult(float conf, const std::array<float, 4>& bbox, uint8_t (&out_bytes)[3]) 
 {
     uint8_t q_conf = quantizeToInt4(conf);
     uint8_t q_xmin = quantizeToInt4(bbox[0]);
@@ -64,15 +64,12 @@ inline void packDectResult(float conf, const std::vector<float>& bbox, uint8_t (
     out_bytes[2] = ((q_xmax & 0x0F) << 4) | (q_ymax & 0x0F);
 }
 
-inline void packPoseResult(const std::vector<float>& pose, float (&out_bytes)[7])
+inline void packPoseResult(const std::array<float, 3>& tmc, const std::array<float, 3>& vel, const std::array<float, 4>& pose, float (&out_bytes)[10])
 {
-    size_t count = std::min(pose.size(), size_t(7));
-    for (size_t i = 0; i < count; ++i) {
-        out_bytes[i] = pose[i];
-    }
-    for (size_t i = count; i < 7; ++i) {
-        out_bytes[i] = 0.0f;
-    }
+    int offset = 0;
+    memcpy(out_bytes + offset, tmc.data(), sizeof(tmc)); offset += sizeof(tmc);
+    memcpy(out_bytes + offset, vel.data(), sizeof(vel)); offset += sizeof(vel);
+    memcpy(out_bytes + offset, pose.data(), sizeof(pose)); offset += sizeof(pose);
 } 
 
 #endif // CPY_HPP
