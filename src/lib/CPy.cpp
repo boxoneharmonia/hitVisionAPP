@@ -138,6 +138,10 @@ void CPyThread()
     string imagePath;
     int imageIndex = -1;
     int imageIndexNew = 0;
+    static array<float, 4> bbox;
+    static array<float, 3> tmc;
+    static array<float, 3> vel;
+    static array<float, 4> pose;
     PyCaller py(baseDir, "model");
     py.callFunction("load_model");
     while (1)
@@ -159,11 +163,6 @@ void CPyThread()
 
                     PyObject *bbox_list = PyTuple_GetItem(ret, 1); // list of floats
                     PyObject *tmc_list = PyTuple_GetItem(ret, 2); // list of floats
-
-                    static array<float, 4> bbox;
-                    static array<float, 3> tmc;
-                    static array<float, 3> vel;
-                    static array<float, 4> pose;
 
                     vel.fill(1.0f);
 

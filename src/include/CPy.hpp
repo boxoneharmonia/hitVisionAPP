@@ -67,9 +67,9 @@ inline void packDectResult(float conf, const std::array<float, 4>& bbox, uint8_t
 inline void packPoseResult(const std::array<float, 3>& tmc, const std::array<float, 3>& vel, const std::array<float, 4>& pos, float (&out_bytes)[10])
 {
     int offset = 0;
-    std::copy(tmc.begin(), tmc.end(), out_bytes + offset); offset += sizeof(tmc);
-    std::copy(vel.begin(), vel.end(), out_bytes + offset); offset += sizeof(vel);
-    std::copy(pos.begin(), pos.end(), out_bytes + offset); offset += sizeof(pos);
+    std::copy(tmc.begin(), tmc.end(), out_bytes + offset); offset += tmc.size();
+    std::copy(vel.begin(), vel.end(), out_bytes + offset); offset += vel.size();
+    std::copy(pos.begin(), pos.end(), out_bytes + offset); offset += pos.size();
 } 
 
 #endif // CPY_HPP
