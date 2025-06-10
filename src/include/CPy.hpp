@@ -64,12 +64,12 @@ inline void packDectResult(float conf, const std::array<float, 4>& bbox, uint8_t
     out_bytes[2] = ((q_xmax & 0x0F) << 4) | (q_ymax & 0x0F);
 }
 
-inline void packPoseResult(const std::array<float, 3>& tmc, const std::array<float, 3>& vel, const std::array<float, 4>& pose, float (&out_bytes)[10])
+inline void packPoseResult(const std::array<float, 3>& tmc, const std::array<float, 3>& vel, const std::array<float, 4>& pos, float (&out_bytes)[10])
 {
     int offset = 0;
-    memcpy(out_bytes + offset, tmc.data(), sizeof(tmc)); offset += sizeof(tmc);
-    memcpy(out_bytes + offset, vel.data(), sizeof(vel)); offset += sizeof(vel);
-    memcpy(out_bytes + offset, pose.data(), sizeof(pose)); offset += sizeof(pose);
+    std::copy(tmc.begin(), tmc.end(), out_bytes + offset); offset += sizeof(tmc);
+    std::copy(vel.begin(), vel.end(), out_bytes + offset); offset += sizeof(vel);
+    std::copy(pos.begin(), pos.end(), out_bytes + offset); offset += sizeof(pos);
 } 
 
 #endif // CPY_HPP

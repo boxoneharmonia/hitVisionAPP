@@ -326,7 +326,7 @@ void DDSPub(uint8_t data_message[], uint8_t receive_cnt, DDSPub_t* pub, int topi
 	static int8_t receive_cnt_old = 0;
 	if(receive_cnt != receive_cnt_old || true)
 	{
-		uint8_t temp[54] = { 0 };
+		uint8_t temp[66] = { 0 };
 
 		temp[0] = (SYNC_HEAD >> 8) & 0xFF;
 		temp[1] = SYNC_HEAD & 0xFF;
