@@ -347,17 +347,17 @@ void DDSPub(uint8_t data_message[], uint8_t receive_cnt, DDSPub_t* pub, int topi
 		// temp[6] = 0x02;
 
 		int i = 0;
-		for (i = 0;i < 38;i++)
+		for (i = 0; i < 50; i++)
 		{
 			temp[14 + i] = data_message[i];
 		}
-		temp[52] = receive_cnt;
+		temp[64] = receive_cnt;
 		send_cnt++;
-		temp[53] = send_cnt;
+		temp[65] = send_cnt;
 
 		char json[1024] = {0};  
 		char data_message_json[512] = {0};
-		buildArrayString(temp + 14, 40, data_message_json);
+		buildArrayString(temp + 14, 52, data_message_json);
 		uint8_t sum = checksum(temp, sizeof(temp));
 
 		sprintf(json, 

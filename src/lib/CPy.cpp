@@ -165,6 +165,8 @@ void CPyThread()
                     static array<float, 3> vel;
                     static array<float, 4> pose;
 
+                    vel.fill(1.0f);
+
                     if (PyList_Check(bbox_list) && PyList_Size(bbox_list) == 4)
                     {
                         for (Py_ssize_t i = 0; i < 4; ++i)
