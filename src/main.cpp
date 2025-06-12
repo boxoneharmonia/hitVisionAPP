@@ -118,7 +118,7 @@ int main()
         memcpy(telemetry + offset, flyWheel, sizeof(flyWheel)); offset += sizeof(flyWheel);}
 
         DDSPub(telemetry, TM_receive_cnt, pub, APP_DATA_INDEX);
-        this_thread::sleep_for(chrono::milliseconds(100));
+        this_thread::sleep_for(chrono::milliseconds(1000));
     }
 
     // DDSPub_destroy(pub); //摧毁pub
