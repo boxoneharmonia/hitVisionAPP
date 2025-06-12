@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/username/.local/lib/python3.6/site-packages')
+sys.path.append('/home/username/.local/lib/python3.8/site-packages')
 
 import tensorrt as trt
 import pycuda.driver as cuda
