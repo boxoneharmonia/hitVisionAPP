@@ -31,10 +31,6 @@ int main()
     DDSPub_init(pub);
     printf("DDSPub created.\n");
 
-    // PyCaller py(baseDir, "model");
-    // py.callFunction("load_model");
-    // cout << "Model loaded." << endl;
-
     while(1)
     {
         {std::lock_guard<std::mutex> lock(ddsMutex);
