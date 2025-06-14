@@ -25,7 +25,7 @@ int main()
     // thread t3(UDPThread);
     thread t3(TCPThread);
     thread t4(DDSSubThread);
-    thread t5(CPyThread);
+    // thread t5(CPyThread);
     thread t6(ControlThread);
 
     DDSPub_t* pub = DDSPub_create();

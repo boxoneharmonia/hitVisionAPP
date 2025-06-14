@@ -207,11 +207,13 @@ void CPyThread()
 PyObject* toPyList(const vector<float>& vec) 
 {
     PyObject* pyList = PyList_New(vec.size());
+    printf("<toPyList> pylist initialized");
     for (size_t i = 0; i < vec.size(); ++i) 
     {
         PyObject* item = PyFloat_FromDouble(vec[i]);
         PyList_SetItem(pyList, i, item); 
         Py_DECREF(item);
+        printf("<toPyList> C++ vector item %d converted", i);
     }
     return pyList;
 }
@@ -219,16 +221,18 @@ PyObject* toPyList(const vector<float>& vec)
 vector<float> pyListToVector(PyObject* listObj) 
 {
     vector<float> result;
-
+    printf("<pyListToVector> C++ vector initialized");
     Py_ssize_t len = PyList_Size(listObj);
     result.reserve(len);
-    
+    printf("<pyListToVector> pylist size confirmed");
     for (Py_ssize_t i = 0; i < len; ++i) 
     {
         PyObject* item = PyList_GetItem(listObj, i);
+        printf("<pyListToVector> pylist item %d taken", i);
         if (PyFloat_Check(item)) 
         {
             result.push_back(PyFloat_AsDouble(item));
+            printf("<pyListToVector> pylist item %d pushed into C++ vector", i);
         } 
         Py_DECREF(item);
     }
@@ -236,28 +240,38 @@ vector<float> pyListToVector(PyObject* listObj)
 }
 
 void ControlThread() {
+    printf("connected to ControlThread");
     const string baseDir = getExecutableDir();
     PyCaller py(baseDir, "control");
+    printf("connected to control.py");
     py.callFunction("load_model");
+    printf("models have been loaded");
     while (1)
     {
         if (controlRunning == 0x10)
         {
+            printf("entered control branch");
             vector<float> inputVec(7);
             inputVec.assign({0.984536f, -0.00566f, 0.15888f, -0.073557f, 0.0002701f, -0.000227f, 0.0003019f});
+            printf("generated input C++ vector");
             PyObject *pyInput = toPyList(inputVec);
+            printf("C++ vector converted to pylist");
             PyObject *args = PyTuple_Pack(1, pyInput); 
+            printf("pylist packed into tuple");
             PyObject *ret = py.callFunctionWithRet("control_mode2", args);
+            printf("network executed successfully");
             Py_DECREF(args);
 
             vector<float> outputVec;
             if (ret && PyList_Check(ret) && PyList_Size(ret) == 4) 
             {
                 outputVec = pyListToVector(ret);
+                printf("pylist output converted to C++ vector successfully");
             } 
             
             Py_DECREF(ret);
             Py_DECREF(pyInput);
+            printf("pycaller decrefed");
             {
                 std::lock_guard<std::mutex> lock(ddsMutex);
                 packFlyWheel(outputVec, flyWheel);
