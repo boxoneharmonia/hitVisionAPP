@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/home/user/.local/lib/python3.8/site-packages')
+
 import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
@@ -48,7 +51,7 @@ def load_model():
         return bindings, inputs, outputs
 
     print("Loading engine_1...")
-    engine_1 = load_engine("model_1.engine")
+    engine_1 = load_engine("/mmc/app/install/APP_1/bin/model_1.engine")
     context_1 = engine_1.create_execution_context()
     bindings_1, inputs_1, outputs_1 = setup_io(engine_1)
 
