@@ -3,8 +3,6 @@
 #include "dds.hpp"
 #include "Camera.hpp"
 #include <opencv2/aruco.hpp>
-#include <set>
-#include <algorithm>
 using namespace std;
 using namespace cv;
 
@@ -147,15 +145,9 @@ void CPyThread()
     static array<float, 3> tmc;
     static array<float, 3> vel;
     static array<float, 4> pose;
-    Mat image, gray;
-    Ptr<aruco::DetectorParameters> parameters = aruco::DetectorParameters::create();
-    Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_4X4_250);
-    vector<int> markerIds;
-    vector<vector<Point2f>> markerCorners, rejectedCandidates;
     Mat cameraMatrix, distCoeffs;
     cameraMatrix = (Mat_<double>(3,3) << 1814.6, 0, 619.7631, 0, 1813.0, 480.8544, 0, 0, 1);
     distCoeffs = (Mat_<double>(1,5) << 0.0374, -0.0373, 0.0, 0.0, -0.01);
-    vector<Vec3d> rvecs, tvecs;
     VelocityEstimator vest(0.1f, 0.3f);
     PyCaller py(baseDir, "model");
     py.callFunction("load_model");
@@ -196,32 +188,12 @@ void CPyThread()
                         }
                     }
 
-                    do
-                    {
-                        if (tmc[2] < 5.0f) {
-                            image = imread(imagePath);
-                            cvtColor(image, gray, COLOR_BGR2GRAY);
-                            gray.convertTo(gray, CV_8UC1);
-
-                            aruco::detectMarkers(gray, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
-                            if (markerIds.empty()) break;
-
-                            set<int> requiredIds = {0, 1, 2, 3};
-                            set<int> detected(markerIds.begin(), markerIds.end());
-                            std::vector<int> intersection;
-                            std::set_intersection(
-                                requiredIds.begin(), requiredIds.end(),
-                                detected.begin(), detected.end(),
-                                std::back_inserter(intersection)
-                            );
-                            if (intersection.empty()) break;
-
-                            aruco::estimatePoseSingleMarkers(markerCorners, 0.07, cameraMatrix, distCoeffs, rvecs, tvecs);
-
-                            
-
-                        }
-                    } while (0);
+                    if (tmc[2] < 5.0f) {
+                        bool arucoDetected = false;
+                        static array<float, 3> tMarker;
+                        static array<float, 4> qMarker;
+                        arucoDetected = arucoDetect(imagePath, cameraMatrix, distCoeffs, tMarker, qMarker);
+                    }
                     
 
 
@@ -287,3 +259,105 @@ private:
     std::array<float, 3> previous_position_;
     std::array<float, 3> filtered_velocity_;
 };
+
+bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoeffs, 
+    array<float, 3> &tAvg, array<float, 4> &qAvg) {
+    Mat image, gray;
+    Ptr<aruco::DetectorParameters> parameters = aruco::DetectorParameters::create();
+    Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_4X4_250);
+    vector<int> markerIds, validIds;
+    vector<vector<Point2f>> markerCorners, rejectedCandidates, validCorners;
+    vector<Vec3d> rvecs, tvecs;
+
+    image = imread(path);
+    cvtColor(image, gray, COLOR_BGR2GRAY);
+    gray.convertTo(gray, CV_8UC1);
+    aruco::detectMarkers(gray, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
+    if (markerIds.empty()) return false;
+
+    for (size_t i=0; i < markerIds.size(); i++) {
+        if (markerIds[i] > 3) continue;
+        else {
+            validIds.push_back(markerIds[i]);
+            validCorners.push_back(markerCorners[i]);
+        }
+    }
+
+    if (validIds.empty()) return false;
+    aruco::estimatePoseSingleMarkers(validCorners, 0.07, cameraMatrix, distCoeffs, rvecs, tvecs);
+    vector<array<float,4>> quats;
+
+    size_t numMarkers = validIds.size();
+    for (uint i=0; i < numMarkers; i++) {
+        Mat R;
+        array<float, 4> qMarker;
+        Rodrigues(rvecs[i], R);
+        dcmToQuat(R, qMarker);
+        quats.push_back(qMarker);
+    }
+
+    if (numMarkers == 1) {
+        for (int j = 0; j < 3; ++j)
+            tAvg[j] = static_cast<float>(tvecs[0][j]);
+
+        qAvg = quats[0];
+    }
+    else {
+        Vec3d t_sum(0, 0, 0);
+        for (const auto& tvec : tvecs)
+            t_sum += Vec3d(tvec[0], tvec[1], tvec[2]);
+
+        t_sum = Vec3d(t_sum[0] / numMarkers, t_sum[1] / numMarkers, t_sum[2] / numMarkers);
+        for (int j = 0; j < 3; ++j)
+            tAvg[j] = static_cast<float>(t_sum[j]);
+        averageQuat(quats, qAvg);
+    }
+}
+
+void dcmToQuat(Mat &R, array<float, 4> &qOut) {
+    array<float, 4> Quat;
+
+    float Trace = R.at<double>(0, 0) + R.at<double>(1, 1) + R.at<double>(2, 2);
+    if (Trace >= 0.0)
+    {
+        Quat[0] = float(sqrt(1.0 + Trace) / 2.0);
+        Quat[1] = (R.at<double>(1, 2) - R.at<double>(2, 1)) / Quat[0] / 4.0;
+        Quat[2] = (R.at<double>(2, 0) - R.at<double>(0, 2)) / Quat[0] / 4.0;
+        Quat[3] = (R.at<double>(0, 1) - R.at<double>(1, 0)) / Quat[0] / 4.0;
+    }
+    else
+    {
+        if ((R.at<double>(1, 1) > R.at<double>(0, 0)) && (R.at<double>(1, 1) > R.at<double>(2, 2)))
+        {
+            Quat[2] = sqrt(1.0 - R.at<double>(0, 0) + R.at<double>(1, 1) - R.at<double>(2, 2)) / 2.0;
+            Quat[0] = (R.at<double>(2, 0) - R.at<double>(0, 2)) / Quat[2] / 4.0;
+            Quat[1] = (R.at<double>(1, 0) + R.at<double>(0, 1)) / Quat[2] / 4.0;
+            Quat[3] = (R.at<double>(2, 1) + R.at<double>(1, 2)) / Quat[2] / 4.0;
+        }
+        else if (R.at<double>(2, 2) > R.at<double>(0, 0))
+        {
+            Quat[3] = sqrt(1.0 - R.at<double>(0, 0) - R.at<double>(1, 1) + R.at<double>(2, 2)) / 2.0;
+            Quat[0] = (R.at<double>(0, 1) - R.at<double>(1, 0)) / Quat[3] / 4.0;
+            Quat[1] = (R.at<double>(2, 0) + R.at<double>(0, 2)) / Quat[3] / 4.0;
+            Quat[2] = (R.at<double>(2, 1) + R.at<double>(1, 2)) / Quat[3] / 4.0;
+        }
+        else
+        {
+            Quat[1] = sqrt(1.0 + R.at<double>(0, 0) - R.at<double>(1, 1) - R.at<double>(2, 2)) / 2.0;
+            Quat[0] = (R.at<double>(1, 2) - R.at<double>(2, 1)) / Quat[1] / 4.0;
+            Quat[2] = (R.at<double>(1, 0) + R.at<double>(0, 1)) / Quat[1] / 4.0;
+            Quat[3] = (R.at<double>(2, 0) + R.at<double>(0, 2)) / Quat[1] / 4.0;
+        }
+    }
+
+    for (size_t i = 0; i < 4; i++)
+    {
+        Quat[i] = Quat[i] / sqrt(Quat[0] * Quat[0] + Quat[1] * Quat[1] + Quat[2] * Quat[2] + Quat[3] * Quat[3]);
+    }
+
+    qOut = Quat;
+}
+
+void averageQuat(vector<array<float, 4>> &quats, array<float, 4> &qOut) {
+
+}
