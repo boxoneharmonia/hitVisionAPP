@@ -12,7 +12,7 @@ int main()
     uint8_t dExpEx = 0x00;
     uint8_t dGainEx = 0x00;
     uint8_t dFrameRateEx = 0x00;
-    uint8_t telemetry[38] = {0};
+    uint8_t telemetry[50] = {0};
     cameraSetting = false;
     cameraRunning = false;
     // UDPSocketRunning = false;
@@ -30,10 +30,6 @@ int main()
     DDSPub_set_domain_id(pub, 1);
     DDSPub_init(pub);
     printf("DDSPub created.\n");
-
-    // PyCaller py(baseDir, "model");
-    // py.callFunction("load_model");
-    // cout << "Model loaded." << endl;
 
     while(1)
     {
@@ -92,7 +88,7 @@ int main()
             visionRunning = false;
             const uint8_t tmp1[3] = {0x00, 0x00, 0x00};
             memcpy(dectResult, tmp1, sizeof(tmp1));
-            const float tmp2[7] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+            const float tmp2[10] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
             memcpy(poseResult, tmp2, sizeof(tmp2));
         }
         if (controlBit)
@@ -118,7 +114,7 @@ int main()
         memcpy(telemetry + offset, flyWheel, sizeof(flyWheel)); offset += sizeof(flyWheel);}
 
         DDSPub(telemetry, TM_receive_cnt, pub, APP_DATA_INDEX);
-        this_thread::sleep_for(chrono::milliseconds(100));
+        this_thread::sleep_for(chrono::milliseconds(1000));
     }
 
     // DDSPub_destroy(pub); //摧毁pub

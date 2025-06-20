@@ -1,6 +1,7 @@
 #include "CPy.hpp"
 #include "file.hpp"
 #include "dds.hpp"
+#include "Camera.hpp"
 using namespace std;
 
 PyCaller::PyCaller(const string &module_dir, const string &module_name)
@@ -138,12 +139,18 @@ void CPyThread()
     string imagePath;
     int imageIndex = -1;
     int imageIndexNew = 0;
+    static array<float, 4> bbox;
+    static array<float, 3> tmc;
+    static array<float, 3> vel;
+    static array<float, 4> pose;
+    VelocityEstimator vest(0.1f, 0.3f);
     PyCaller py(baseDir, "model");
     py.callFunction("load_model");
     while (1)
     {
         if (visionRunning)
         {
+            vest.updateParam(1.0f/frameRate, 0.3f);
             readIndexFile(imageIndexNew);
             imageIndexNew--;
             if (imageIndexNew > imageIndex)
@@ -151,162 +158,40 @@ void CPyThread()
                 imageIndex = imageIndexNew;
                 imagePath = folderPath + "/" + to_string(imageIndexNew) + ".bmp";
                 PyObject *args = toPyTuple(imagePath);
-                PyObject *ret = py.callFunctionWithRet("infer", args);
+                PyObject *ret = py.callFunctionWithRet("infer_1", args);
                 Py_DECREF(args);
                 if (ret && PyTuple_Check(ret) && PyTuple_Size(ret) == 3)
                 {
                     double confidence = PyFloat_AsDouble(PyTuple_GetItem(ret, 0));
 
                     PyObject *bbox_list = PyTuple_GetItem(ret, 1); // list of floats
-                    PyObject *kpts_list = PyTuple_GetItem(ret, 2); // list of floats
+                    PyObject *tmc_list = PyTuple_GetItem(ret, 2); // list of floats
 
-                    vector<float> bbox, keypoints;
-
-                    if (PyList_Check(bbox_list))
+                    if (PyList_Check(bbox_list) && PyList_Size(bbox_list) == 4)
                     {
-                        for (Py_ssize_t i = 0; i < PyList_Size(bbox_list); ++i)
+                        for (Py_ssize_t i = 0; i < 4; ++i)
                         {
-                            bbox.push_back(PyFloat_AsDouble(PyList_GetItem(bbox_list, i)));
+                            bbox[i] = PyFloat_AsDouble(PyList_GetItem(bbox_list, i));
                         }
                     }
 
-                    if (PyList_Check(kpts_list))
+                    if (PyList_Check(tmc_list) && PyList_Size(tmc_list) == 3)
                     {
-                        for (Py_ssize_t i = 0; i < PyList_Size(kpts_list); ++i)
+                        for (Py_ssize_t i = 0; i < 3; ++i)
                         {
-                            keypoints.push_back(PyFloat_AsDouble(PyList_GetItem(kpts_list, i)));
+                            tmc[i] = PyFloat_AsDouble(PyList_GetItem(tmc_list, i));
                         }
                     }
+
+                    vel = vest.update(tmc);
 
                     Py_DECREF(bbox_list);
-                    Py_DECREF(kpts_list);
+                    Py_DECREF(tmc_list);
                     Py_DECREF(ret);
-
-                    // 提取出有效的11个二维坐标
-                    uint8_t i = 0, j = 0;
-                    for (i = 0; i < 33; i++)
-                    {
-                        if (i % 3 == 0)
-                        {
-                            ;
-                        }
-                        else
-                        {
-                            keypoints.at(j) = keypoints.at(i);
-                            j++;
-                        }
-                    }
-                    keypoints.resize(22);
-
-                    // 特征点物理坐标
-                    std::vector<float> keypoints_3D = {
-                        0, 0, 0,
-                        1, 0, 0,
-                        1, 1, 0,
-                        0, 1, 0,
-                        1, 0, 0,
-                        1, 1, 0,
-                        0, 1, 0,
-                        1, 0, 0,
-                        1, 1, 0,
-                        0, 1, 0,
-                        1, 0, 0};
-
-                    // 相机内参
-                    cv::Mat cameraMatrix = (cv::Mat_<float>(3, 3) << 600.f, 0.f, 320.f,
-                                            0.f, 600.f, 240.f,
-                                            0.f, 0.f, 1.f);
-
-                    // 畸变参数
-                    cv::Mat distCoeffs = (cv::Mat_<float>(5, 1) << -0.1f, // k1
-                                          0.05f,                          // k2
-                                          0.01f,                          // p1
-                                          0.02f,                          // p2
-                                          -0.001f);                       // k3
-
-                    // 输出 旋转向量 平移向量
-                    cv::Mat rvec, tvec;
-
-                    // 转换为 OpenCV 所需的数据结构
-                    std::vector<cv::Point3f> objectPoints;
-                    for (size_t i = 0; i + 2 < keypoints_3D.size(); i += 3)
-                    {
-                        objectPoints.emplace_back(keypoints_3D[i], keypoints_3D[i + 1], keypoints_3D[i + 2]);
-                    }
-
-                    std::vector<cv::Point2f> imagePoints;
-                    for (size_t i = 0; i + 1 < keypoints.size(); i += 2)
-                    {
-                        imagePoints.emplace_back(keypoints[i], keypoints[i + 1]);
-                    }
-
-                    bool success = cv::solvePnP(objectPoints, imagePoints, cameraMatrix, distCoeffs, rvec, tvec);
-
-                    if (success)
-                    {
-                        std::cout << "solvePnP 成功！" << std::endl;
-                        std::cout << "旋转向量 rvec:\n"
-                                  << rvec << std::endl;
-                        std::cout << "平移向量 tvec:\n"
-                                  << tvec << std::endl;
-                    }
-                    else
-                    {
-                        std::cout << "solvePnP 失败！" << std::endl;
-                    }
-
-                    cv::Mat R;
-                    cv::Rodrigues(rvec, R); // rvec 是 3x1 旋转向量
-
-                    float Quat[4];
-
-                    float Trace = R.at<double>(0, 0) + R.at<double>(1, 1) + R.at<double>(2, 2);
-                    if (Trace >= 0.0)
-                    {
-                        Quat[0] = sqrt(1.0 + Trace) / 2.0;
-                        Quat[1] = (R.at<double>(1, 2) - R.at<double>(2, 1)) / Quat[0] / 4.0;
-                        Quat[2] = (R.at<double>(2, 0) - R.at<double>(0, 2)) / Quat[0] / 4.0;
-                        Quat[3] = (R.at<double>(0, 1) - R.at<double>(1, 0)) / Quat[0] / 4.0;
-                    }
-                    else
-                    {
-                        if ((R.at<double>(1, 1) > R.at<double>(0, 0)) && (R.at<double>(1, 1) > R.at<double>(2, 2)))
-                        {
-                            Quat[2] = sqrt(1.0 - R.at<double>(0, 0) + R.at<double>(1, 1) - R.at<double>(2, 2)) / 2.0;
-                            Quat[0] = (R.at<double>(2, 0) - R.at<double>(0, 2)) / Quat[2] / 4.0;
-                            Quat[1] = (R.at<double>(1, 0) + R.at<double>(0, 1)) / Quat[2] / 4.0;
-                            Quat[3] = (R.at<double>(2, 1) + R.at<double>(1, 2)) / Quat[2] / 4.0;
-                        }
-                        else if (R.at<double>(2, 2) > R.at<double>(0, 0))
-                        {
-                            Quat[3] = sqrt(1.0 - R.at<double>(0, 0) - R.at<double>(1, 1) + R.at<double>(2, 2)) / 2.0;
-                            Quat[0] = (R.at<double>(0, 1) - R.at<double>(1, 0)) / Quat[3] / 4.0;
-                            Quat[1] = (R.at<double>(2, 0) + R.at<double>(0, 2)) / Quat[3] / 4.0;
-                            Quat[2] = (R.at<double>(2, 1) + R.at<double>(1, 2)) / Quat[3] / 4.0;
-                        }
-                        else
-                        {
-                            Quat[1] = sqrt(1.0 + R.at<double>(0, 0) - R.at<double>(1, 1) - R.at<double>(2, 2)) / 2.0;
-                            Quat[0] = (R.at<double>(1, 2) - R.at<double>(2, 1)) / Quat[1] / 4.0;
-                            Quat[2] = (R.at<double>(1, 0) + R.at<double>(0, 1)) / Quat[1] / 4.0;
-                            Quat[3] = (R.at<double>(2, 0) + R.at<double>(0, 2)) / Quat[1] / 4.0;
-                        }
-                    }
-
-                    for (i = 0; i < 4; i++)
-                    {
-                        Quat[i] = Quat[i] / sqrt(Quat[0] * Quat[0] + Quat[1] * Quat[1] + Quat[2] * Quat[2] + Quat[3] * Quat[3]);
-                    }
-                    std::cout << "四元数 quat: \n"
-                              << "[" << Quat[0] << ", " << Quat[1] << ", " << Quat[2] << ", " << Quat[3] << "]"
-                              << std::endl;
-
-                    cout
-                        << "Infer OK: conf=" << confidence << ", bbox.size=" << bbox.size() << ", keypoints.size=" << keypoints.size() << endl;
                     {
                         std::lock_guard<std::mutex> lock(ddsMutex);
                         packDectResult(confidence, bbox, dectResult);
-                        packPoseResult(keypoints, poseResult);
+                        packPoseResult(tmc, vel, pose, poseResult);
                     }
                 }
                 else
@@ -321,3 +206,42 @@ void CPyThread()
         }
     }
 }
+
+class VelocityEstimator {
+public:
+    VelocityEstimator(float dt, float alpha)
+        : dt_(dt), alpha_(alpha), first_frame_(true) {
+        previous_position_.fill(0.0f);
+        filtered_velocity_.fill(0.0f);
+    }
+
+    void updateParam(float dt, float alpha){
+        dt_ = dt;
+        alpha_ = alpha;
+    }
+
+    std::array<float, 3> update(const std::array<float, 3>& position) {
+        std::array<float, 3> out_velocity{};
+        if (first_frame_) {
+            filtered_velocity_.fill(0.0f);
+            first_frame_ = false;
+        } else {
+            std::array<float, 3> raw_velocity;
+            for (int i = 0; i < 3; ++i) {
+                raw_velocity[i] = (position[i] - previous_position_[i]) / dt_;
+                filtered_velocity_[i] = alpha_ * raw_velocity[i] + (1.0f - alpha_) * filtered_velocity_[i];
+            }
+        }
+
+        previous_position_ = position;
+        out_velocity = filtered_velocity_;
+        return out_velocity;
+    }
+
+private:
+    float dt_;
+    float alpha_;
+    bool first_frame_;
+    std::array<float, 3> previous_position_;
+    std::array<float, 3> filtered_velocity_;
+};

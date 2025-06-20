@@ -15,21 +15,21 @@ using namespace std;
 
 const float expTable[16] = {
     5000.f,  // 0x00 (default)
-    2500.f,  // 0x01
-    5000.f,  // 0x02
-    7500.f,  // 0x03
-    10000.f, // 0x04
-    12500.f, // 0x05
+    500.f,  // 0x01
+    1000.f,  // 0x02
+    2500.f,  // 0x03
+    5000.f, // 0x04
+    10000.f, // 0x05
     15000.f, // 0x06
-    17500.f, // 0x07
-    20000.f, // 0x08
-    22500.f, // 0x09
-    25000.f, // 0x0A
-    27500.f, // 0x0B
-    30000.f, // 0x0C
-    32500.f, // 0x0D
-    35000.f, // 0x0E
-    37500.f, // 0x0F
+    20000.f, // 0x07
+    25000.f, // 0x08
+    30000.f, // 0x09
+    35000.f, // 0x0A
+    40000.f, // 0x0B
+    45000.f, // 0x0C
+    50000.f, // 0x0D
+    75000.f, // 0x0E
+    100000.f, // 0x0F
 };
 
 const float gainTable[4] = {
@@ -326,7 +326,7 @@ void DDSPub(uint8_t data_message[], uint8_t receive_cnt, DDSPub_t* pub, int topi
 	static int8_t receive_cnt_old = 0;
 	if(receive_cnt != receive_cnt_old || true)
 	{
-		uint8_t temp[54] = { 0 };
+		uint8_t temp[66] = { 0 };
 
 		temp[0] = (SYNC_HEAD >> 8) & 0xFF;
 		temp[1] = SYNC_HEAD & 0xFF;
@@ -347,17 +347,17 @@ void DDSPub(uint8_t data_message[], uint8_t receive_cnt, DDSPub_t* pub, int topi
 		// temp[6] = 0x02;
 
 		int i = 0;
-		for (i = 0;i < 38;i++)
+		for (i = 0; i < 50; i++)
 		{
 			temp[14 + i] = data_message[i];
 		}
-		temp[52] = receive_cnt;
+		temp[64] = receive_cnt;
 		send_cnt++;
-		temp[53] = send_cnt;
+		temp[65] = send_cnt;
 
 		char json[1024] = {0};  
 		char data_message_json[512] = {0};
-		buildArrayString(temp + 14, 40, data_message_json);
+		buildArrayString(temp + 14, 52, data_message_json);
 		uint8_t sum = checksum(temp, sizeof(temp));
 
 		sprintf(json, 
