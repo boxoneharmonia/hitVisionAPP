@@ -2,7 +2,11 @@
 #include "file.hpp"
 #include "dds.hpp"
 #include "Camera.hpp"
+#include <opencv2/aruco.hpp>
+#include <set>
+#include <algorithm>
 using namespace std;
+using namespace cv;
 
 PyCaller::PyCaller(const string &module_dir, const string &module_name)
     : module_dir_(module_dir), module_name_(module_name), pModule_(nullptr), initialized_(false)
@@ -143,6 +147,15 @@ void CPyThread()
     static array<float, 3> tmc;
     static array<float, 3> vel;
     static array<float, 4> pose;
+    Mat image, gray;
+    Ptr<aruco::DetectorParameters> parameters = aruco::DetectorParameters::create();
+    Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_4X4_250);
+    vector<int> markerIds;
+    vector<vector<Point2f>> markerCorners, rejectedCandidates;
+    Mat cameraMatrix, distCoeffs;
+    cameraMatrix = (Mat_<double>(3,3) << 1814.6, 0, 619.7631, 0, 1813.0, 480.8544, 0, 0, 1);
+    distCoeffs = (Mat_<double>(1,5) << 0.0374, -0.0373, 0.0, 0.0, -0.01);
+    vector<Vec3d> rvecs, tvecs;
     VelocityEstimator vest(0.1f, 0.3f);
     PyCaller py(baseDir, "model");
     py.callFunction("load_model");
@@ -182,6 +195,35 @@ void CPyThread()
                             tmc[i] = PyFloat_AsDouble(PyList_GetItem(tmc_list, i));
                         }
                     }
+
+                    do
+                    {
+                        if (tmc[2] < 5.0f) {
+                            image = imread(imagePath);
+                            cvtColor(image, gray, COLOR_BGR2GRAY);
+                            gray.convertTo(gray, CV_8UC1);
+
+                            aruco::detectMarkers(gray, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
+                            if (markerIds.empty()) break;
+
+                            set<int> requiredIds = {0, 1, 2, 3};
+                            set<int> detected(markerIds.begin(), markerIds.end());
+                            std::vector<int> intersection;
+                            std::set_intersection(
+                                requiredIds.begin(), requiredIds.end(),
+                                detected.begin(), detected.end(),
+                                std::back_inserter(intersection)
+                            );
+                            if (intersection.empty()) break;
+
+                            aruco::estimatePoseSingleMarkers(markerCorners, 0.07, cameraMatrix, distCoeffs, rvecs, tvecs);
+
+                            
+
+                        }
+                    } while (0);
+                    
+
 
                     vel = vest.update(tmc);
 
