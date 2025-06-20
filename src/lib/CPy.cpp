@@ -1,6 +1,7 @@
 #include "CPy.hpp"
 #include "file.hpp"
 #include "dds.hpp"
+#include "Camera.hpp"
 using namespace std;
 
 PyCaller::PyCaller(const string &module_dir, const string &module_name)
@@ -142,12 +143,14 @@ void CPyThread()
     static array<float, 3> tmc;
     static array<float, 3> vel;
     static array<float, 4> pose;
+    VelocityEstimator vest(0.1f, 0.3f);
     PyCaller py(baseDir, "model");
     py.callFunction("load_model");
     while (1)
     {
         if (visionRunning)
         {
+            vest.updateParam(1.0f/frameRate, 0.3f);
             readIndexFile(imageIndexNew);
             imageIndexNew--;
             if (imageIndexNew > imageIndex)
@@ -164,8 +167,6 @@ void CPyThread()
                     PyObject *bbox_list = PyTuple_GetItem(ret, 1); // list of floats
                     PyObject *tmc_list = PyTuple_GetItem(ret, 2); // list of floats
 
-                    vel.fill(1.0f);
-
                     if (PyList_Check(bbox_list) && PyList_Size(bbox_list) == 4)
                     {
                         for (Py_ssize_t i = 0; i < 4; ++i)
@@ -181,6 +182,8 @@ void CPyThread()
                             tmc[i] = PyFloat_AsDouble(PyList_GetItem(tmc_list, i));
                         }
                     }
+
+                    vel = vest.update(tmc);
 
                     Py_DECREF(bbox_list);
                     Py_DECREF(tmc_list);
@@ -203,3 +206,42 @@ void CPyThread()
         }
     }
 }
+
+class VelocityEstimator {
+public:
+    VelocityEstimator(float dt, float alpha)
+        : dt_(dt), alpha_(alpha), first_frame_(true) {
+        previous_position_.fill(0.0f);
+        filtered_velocity_.fill(0.0f);
+    }
+
+    void updateParam(float dt, float alpha){
+        dt_ = dt;
+        alpha_ = alpha;
+    }
+
+    std::array<float, 3> update(const std::array<float, 3>& position) {
+        std::array<float, 3> out_velocity{};
+        if (first_frame_) {
+            filtered_velocity_.fill(0.0f);
+            first_frame_ = false;
+        } else {
+            std::array<float, 3> raw_velocity;
+            for (int i = 0; i < 3; ++i) {
+                raw_velocity[i] = (position[i] - previous_position_[i]) / dt_;
+                filtered_velocity_[i] = alpha_ * raw_velocity[i] + (1.0f - alpha_) * filtered_velocity_[i];
+            }
+        }
+
+        previous_position_ = position;
+        out_velocity = filtered_velocity_;
+        return out_velocity;
+    }
+
+private:
+    float dt_;
+    float alpha_;
+    bool first_frame_;
+    std::array<float, 3> previous_position_;
+    std::array<float, 3> filtered_velocity_;
+};
