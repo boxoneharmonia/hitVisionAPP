@@ -59,7 +59,7 @@ inline void packDectResult(float conf, const std::array<float, 4>& bbox, uint8_t
     uint8_t q_xmax = quantizeToInt4(bbox[2]);
     uint8_t q_ymax = quantizeToInt4(bbox[3]);
 
-    out_bytes[0] = q_conf & 0x0F;
+    out_bytes[0] = static_cast<uint8_t>(conf > 0x0D);
     out_bytes[1] = ((q_xmin & 0x0F) << 4) | (q_ymin & 0x0F);
     out_bytes[2] = ((q_xmax & 0x0F) << 4) | (q_ymax & 0x0F);
 }

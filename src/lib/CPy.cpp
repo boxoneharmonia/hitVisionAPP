@@ -3,6 +3,8 @@
 #include "dds.hpp"
 #include "Camera.hpp"
 #include <opencv2/aruco.hpp>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 using namespace std;
 using namespace cv;
 
@@ -188,15 +190,17 @@ void CPyThread()
                         }
                     }
 
-                    if (tmc[2] < 5.0f) {
+                    if (tmc[2] < 10.0f) {
                         bool arucoDetected = false;
                         static array<float, 3> tMarker;
                         static array<float, 4> qMarker;
                         arucoDetected = arucoDetect(imagePath, cameraMatrix, distCoeffs, tMarker, qMarker);
+                        if (arucoDetected) {
+                            tmc = tMarker;
+                            pose = qMarker;
+                        }
                     }
-                    
-
-
+                
                     vel = vest.update(tmc);
 
                     Py_DECREF(bbox_list);
@@ -269,15 +273,25 @@ bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoe
     vector<vector<Point2f>> markerCorners, rejectedCandidates, validCorners;
     vector<Vec3d> rvecs, tvecs;
 
-    image = imread(path);
-    cvtColor(image, gray, COLOR_BGR2GRAY);
-    gray.convertTo(gray, CV_8UC1);
+    image = imread(path, IMREAD_GRAYSCALE);
+    gray = image.clone();						
+    
+    for (int y = 0; y < gray.rows; y++) {
+        uint8_t* ptr = gray.ptr<uint8_t>(y);
+        for (int x = 0; x < gray.cols; x++) {
+            uint8_t v = ptr[x];
+            if (v < 150)
+                ptr[x] = saturate_cast<uchar>(v / 150.0f * 255.0f);
+            else
+                ptr[x] = 255;
+        }
+    }
+
     aruco::detectMarkers(gray, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
     if (markerIds.empty()) return false;
 
-    for (size_t i=0; i < markerIds.size(); i++) {
-        if (markerIds[i] > 3) continue;
-        else {
+    for (uint i = 0; i < markerIds.size(); i++) {
+        if (markerIds[i] <= 3) {
             validIds.push_back(markerIds[i]);
             validCorners.push_back(markerCorners[i]);
         }
@@ -288,7 +302,7 @@ bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoe
     vector<array<float,4>> quats;
 
     size_t numMarkers = validIds.size();
-    for (uint i=0; i < numMarkers; i++) {
+    for (uint i = 0; i < numMarkers; i++) {
         Mat R;
         array<float, 4> qMarker;
         Rodrigues(rvecs[i], R);
@@ -297,21 +311,23 @@ bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoe
     }
 
     if (numMarkers == 1) {
-        for (int j = 0; j < 3; ++j)
+        for (uint j = 0; j < 3; ++j)
             tAvg[j] = static_cast<float>(tvecs[0][j]);
 
         qAvg = quats[0];
     }
+
     else {
         Vec3d t_sum(0, 0, 0);
         for (const auto& tvec : tvecs)
             t_sum += Vec3d(tvec[0], tvec[1], tvec[2]);
 
         t_sum = Vec3d(t_sum[0] / numMarkers, t_sum[1] / numMarkers, t_sum[2] / numMarkers);
-        for (int j = 0; j < 3; ++j)
+        for (uint j = 0; j < 3; ++j)
             tAvg[j] = static_cast<float>(t_sum[j]);
         averageQuat(quats, qAvg);
     }
+    return true;
 }
 
 void dcmToQuat(Mat &R, array<float, 4> &qOut) {
@@ -350,14 +366,46 @@ void dcmToQuat(Mat &R, array<float, 4> &qOut) {
         }
     }
 
-    for (size_t i = 0; i < 4; i++)
-    {
-        Quat[i] = Quat[i] / sqrt(Quat[0] * Quat[0] + Quat[1] * Quat[1] + Quat[2] * Quat[2] + Quat[3] * Quat[3]);
+    double squareSum = sqrt(Quat[0] * Quat[0] + Quat[1] * Quat[1] + Quat[2] * Quat[2] + Quat[3] * Quat[3]);
+
+    for (size_t i = 0; i < 4; i++) {
+        Quat[i] = Quat[i] / squareSum;
     }
 
     qOut = Quat;
 }
 
 void averageQuat(vector<array<float, 4>> &quats, array<float, 4> &qOut) {
+    vector<Eigen::Quaternionf> qvecs;
+    size_t numQuat = quats.size();
+    for (uint i = 0; i < numQuat; i++) {
+        Eigen::Quaternionf qi(quats[i][0], quats[i][1], quats[i][2], quats[i][3]);
+        if (qi.w() < 0) qi.coeffs() *= -1.0f;
+        qvecs.push_back(qi);
+    }
 
+    Eigen::Quaternionf qBest;
+    float errBest = 100;
+    bool isBest = false;
+
+    for (uint i = 0; i < numQuat; i++) {
+        for (uint j = i + 1; j < numQuat; j++) {
+            if (qvecs[i].dot(qvecs[j]) < 0.98) continue;
+            Eigen::Quaternionf qAvg = qvecs[i].slerp(0.5, qvecs[j]);
+            float err = 0;
+            for (uint k = 0; k < numQuat; k++) {
+                err += 1 - qAvg.dot(qvecs[k]);
+            }
+            if (err < errBest) {
+                errBest = err;
+                isBest = true;
+                qBest = qAvg;
+            }
+        }
+    }
+
+    if (isBest) 
+        qOut = {qBest.w(), qBest.x(), qBest.y(), qBest.z()};
+    else
+        qOut = quats[0];
 }

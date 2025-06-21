@@ -18,6 +18,7 @@ thirdparty_include = [
   "//thirdparty/opencv/include",
   # "//thirdparty/poco/include",
   "//thirdparty/python/include",
+  "//thirdparty/eigen/include",
 ]
 
 src_include = [
