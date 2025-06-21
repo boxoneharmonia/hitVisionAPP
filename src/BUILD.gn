@@ -100,6 +100,21 @@ static_library("cJSON")
   sources = src_cJSON
 }
 
+static_library("vision")
+{
+  if (target_cpu == "x64")
+  {
+
+  }
+  else if (target_cpu == "arm64")
+  {
+
+  }
+  deps = thirdparty_libs + ["//src:Pycaller"]
+  include_dirs = src_include + thirdparty_include
+  sources = src_vision
+}
+
 executable("hitVisionNavi")
 {
   libs = ["pthread"]
