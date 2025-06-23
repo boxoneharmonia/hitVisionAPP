@@ -1,5 +1,6 @@
 #include "Camera.hpp"
 #include "CPy.hpp"
+#include "vision.hpp"
 // #include "UDPClient.hpp"
 #include "TCPClient.hpp"
 #include "file.hpp"
@@ -24,7 +25,7 @@ int main()
     // thread t3(UDPThread);
     thread t3(TCPThread);
     thread t4(DDSSubThread);
-    thread t5(CPyThread);
+    thread t5(visionThread);
 
     DDSPub_t* pub = DDSPub_create();
     DDSPub_set_domain_id(pub, 1);

@@ -10,6 +10,7 @@ src_libs = [
   "//src:Camera",
   "//src:DDS",
   "//src:cJSON",
+  "//src:vision"
 ]
 
 thirdparty_include = [
@@ -18,6 +19,7 @@ thirdparty_include = [
   "//thirdparty/opencv/include",
   # "//thirdparty/poco/include",
   "//thirdparty/python/include",
+  "//thirdparty/eigen/include",
 ]
 
 src_include = [
@@ -62,3 +64,4 @@ src_UDPClient = [ "//src/lib/UDPClient.cpp" ]
 src_CPy = [ "//src/lib/CPy.cpp" ]
 src_cJSON = [ "//src/lib/cJSON.c" ]
 src_Camera = [ "//src/lib/Camera.cpp" ]
+src_vision = [ "//src/lib/vision.cpp" ]
