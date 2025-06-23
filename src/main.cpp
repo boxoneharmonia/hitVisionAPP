@@ -142,13 +142,13 @@ int main()
     DDSSub_destroy(g_sub); //摧毁sub - Maybe there is a bug in DDSSub making it unstoppable
     pthread_cancel(t4.native_handle());
     
-    cout << "DDS destroyed." << endl;
+    // cout << "DDS destroyed." << endl;
 
-    t1.join();
-    t2.join();
-    t3.join();
-    t4.join();
-    t5.join();
+    if (t1.joinable()) t1.join();
+    if (t2.joinable()) t2.join();
+    if (t3.joinable()) t3.join();
+    if (t4.joinable()) t4.join();
+    if (t5.joinable()) t5.join();
 
     this_thread::sleep_for(chrono::seconds(1));
     cout << "Program exited." << endl;

@@ -1,7 +1,7 @@
 #include "dds.hpp"
 
 #define SYNC_HEAD 0xEB90
-#define DATA_LENGTH 33
+#define DATA_LENGTH 62
 #define APP_MAIN_ID 0x01
 #define APP_SUB_ID 0x11
 #define SYS_MAIN_ID 0x01
