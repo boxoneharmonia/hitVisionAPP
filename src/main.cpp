@@ -139,9 +139,10 @@ int main()
     }
 
     DDSPub_destroy(pub); //摧毁pub
-    if (g_sub) {
-        DDSSub_destroy(g_sub); //摧毁sub
-    }
+    DDSSub_destroy(g_sub); //摧毁sub - Maybe there is a bug in DDSSub making it unstoppable
+    pthread_cancel(t4.native_handle());
+    
+    cout << "DDS destroyed." << endl;
 
     t1.join();
     t2.join();
