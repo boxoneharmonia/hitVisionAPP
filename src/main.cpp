@@ -5,15 +5,35 @@
 #include "TCPClient.hpp"
 #include "file.hpp"
 #include "dds.hpp"
+#include "global_state.hpp"
+
+#include <csignal>
+
+void handleSignal(int)
+{
+    programRunning = false;
+    cameraRunning = false;
+    cameraSetting = false;
+    TCPSocketRunning = false;
+    // UDPSocketRunning = false;
+    visionRunning = false;
+}
+
+// Shell scripts can gracefully terminate the program by sending
+// SIGINT or SIGTERM to the process. The handler clears all running
+// flags so the threads exit cleanly.
 
 using namespace std;
 
-int main() 
+int main()
 {
     uint8_t dExpEx = 0x00;
     uint8_t dGainEx = 0x00;
     uint8_t dFrameRateEx = 0x00;
     uint8_t telemetry[50] = {0};
+
+    std::signal(SIGINT, handleSignal);
+    std::signal(SIGTERM, handleSignal);
     cameraSetting = false;
     cameraRunning = false;
     // UDPSocketRunning = false;
@@ -32,7 +52,7 @@ int main()
     DDSPub_init(pub);
     printf("DDSPub created.\n");
 
-    while(1)
+    while(programRunning)
     {
         {std::lock_guard<std::mutex> lock(ddsMutex);
         bool expSettingBit = (dExpBit && dExpEx != dExp);
@@ -118,13 +138,20 @@ int main()
         this_thread::sleep_for(chrono::milliseconds(1000));
     }
 
-    // DDSPub_destroy(pub); //摧毁pub
-    // DDSSub_destroy(sub); //摧毁pub
-    // cameraRunning = false;
-    // socketRunning = false;
-    // py.callFunction("release");
-    // this_thread::sleep_for(chrono::seconds(1));
-    // cout << "Program exited." << endl;
+    DDSPub_destroy(pub); //摧毁pub
+    DDSSub_destroy(g_sub); //摧毁sub - Maybe there is a bug in DDSSub making it unstoppable
+    pthread_cancel(t4.native_handle());
+    
+    cout << "DDS destroyed." << endl;
+
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+    t5.join();
+
+    this_thread::sleep_for(chrono::seconds(1));
+    cout << "Program exited." << endl;
 
     return 0;
 }

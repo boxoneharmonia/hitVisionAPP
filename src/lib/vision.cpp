@@ -3,6 +3,7 @@
 #include "CPy.hpp"
 #include "dds.hpp"
 #include "Camera.hpp"
+#include "global_state.hpp"
 #include <opencv2/aruco.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -26,7 +27,7 @@ void visionThread()
     VelocityEstimator vest(0.1f, 0.3f);
     PyCaller py(baseDir, "model");
     py.callFunction("load_model");
-    while (1)
+    while (programRunning)
     {
         if (visionRunning)
         {
@@ -96,6 +97,7 @@ void visionThread()
             this_thread::sleep_for(chrono::seconds(1));
         }
     }
+    py.callFunction("release");
 }
 
 bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoeffs, 
