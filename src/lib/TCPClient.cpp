@@ -1,5 +1,6 @@
 #include "TCPClient.hpp"
 #include "file.hpp"
+#include "global_state.hpp"
 using namespace std;
 #define CHUNK_SIZE 1024
 
@@ -98,7 +99,7 @@ void TCPThread()
     int imageIndex = -1;
     int imageIndexNew = 0;
 
-    while (1)
+    while (programRunning)
     {
         if (TCPSocketRunning)
         {

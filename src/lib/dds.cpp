@@ -405,10 +405,10 @@ void DDSPub(uint8_t data_message[], uint8_t receive_cnt, DDSPub_t* pub, int topi
 
 void DDSSubThread()
 {
-	DDSSub_t *sub = DDSSub_creat();
-    DDSSub_set_domain_id(sub, 2);
+    g_sub = DDSSub_creat();
+    DDSSub_set_domain_id(g_sub, 2);
     DDSSub_registerCallback(myCallbackFunction);
-    int subAddr[1] ={TELEMETRY_DATA_INDEX};
-    DDSSub_init(sub, subAddr, 1);
-	printf("DDSSub exited");
+    int subAddr[1] = {TELEMETRY_DATA_INDEX};
+    DDSSub_init(g_sub, subAddr, 1);
+    printf("DDSSub exited");
 }
