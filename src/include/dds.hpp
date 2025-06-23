@@ -12,6 +12,9 @@
 #include <cstring>
 #include <mutex>
 
+inline DDSPub_t* g_pub = nullptr;  // Global handle for publisher
+inline DDSSub_t* g_sub = nullptr;  // Global handle for subscriber
+
 // 第1个字节
 inline bool imageBit = false; // 成像 控制位
 inline bool dataTransBit = false; // 数传 控制位

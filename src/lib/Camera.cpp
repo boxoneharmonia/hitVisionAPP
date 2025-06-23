@@ -1,5 +1,6 @@
 #include "Camera.hpp"
 #include "file.hpp"
+#include "global_state.hpp"
 using namespace std;
 using namespace cv;
 namespace fs = std::filesystem;
@@ -469,7 +470,7 @@ void writeThread()
     bool bRawFrame = false;
     Camera camera;
     
-    while (1)
+    while (programRunning)
     {
         if (cameraSetting)
         {
@@ -551,7 +552,7 @@ void readThread()
     }
     readIndexFile(imageIndex);
 
-    while (1)
+    while (programRunning)
     {
         if (cameraRunning)
         {
