@@ -97,6 +97,7 @@ void visionThread()
             this_thread::sleep_for(chrono::seconds(1));
         }
     }
+    py.callFunction("release");
 }
 
 bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoeffs, 

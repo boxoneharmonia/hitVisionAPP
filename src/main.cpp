@@ -1,7 +1,7 @@
 #include "Camera.hpp"
 #include "CPy.hpp"
 #include "vision.hpp"
-#include "UDPClient.hpp"
+// #include "UDPClient.hpp"
 #include "TCPClient.hpp"
 #include "file.hpp"
 #include "dds.hpp"
@@ -15,7 +15,7 @@ void handleSignal(int)
     cameraRunning = false;
     cameraSetting = false;
     TCPSocketRunning = false;
-    UDPSocketRunning = false;
+    // UDPSocketRunning = false;
     visionRunning = false;
 }
 
@@ -148,11 +148,9 @@ int main()
     t3.join();
     t4.join();
     t5.join();
-    // cameraRunning = false;
-    // socketRunning = false;
-    // py.callFunction("release");
-    // this_thread::sleep_for(chrono::seconds(1));
-    // cout << "Program exited." << endl;
+
+    this_thread::sleep_for(chrono::seconds(1));
+    cout << "Program exited." << endl;
 
     return 0;
 }
