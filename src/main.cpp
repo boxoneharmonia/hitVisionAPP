@@ -43,7 +43,7 @@ int main()
     thread t1(writeThread);
     thread t2(readThread);
     // thread t3(UDPThread);
-    thread t3(TCPThread);
+    // thread t3(TCPThread);
     thread t4(DDSSubThread);
     thread t5(visionThread);
 
@@ -146,7 +146,7 @@ int main()
 
     if (t1.joinable()) t1.join();
     if (t2.joinable()) t2.join();
-    if (t3.joinable()) t3.join();
+    // if (t3.joinable()) t3.join();
     if (t4.joinable()) t4.join();
     if (t5.joinable()) t5.join();
 

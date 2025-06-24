@@ -9,7 +9,7 @@
 #include <libgen.h>
 
 inline std::mutex fileMutex;
-inline std::mutex netMutex;
+// inline std::mutex netMutex;
 inline std::string folderPath;
 
 inline std::string getExecutableDir()

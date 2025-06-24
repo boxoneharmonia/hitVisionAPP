@@ -533,7 +533,7 @@ void writeThread()
 void readThread() 
 {
     const int readDelayMs = 100;
-    const string baseDir = getExecutableDir() + "/../data/images/";
+    const string baseDir = getExecutableDir() + "/../output/images/";
     Mat srcImage;
     RawFrame rawFrame;
     bool bRawFrame = false;
@@ -588,6 +588,15 @@ void readThread()
         else
         {
             this_thread::sleep_for(chrono::seconds(1));
+        }
+    }
+
+    {
+        lock_guard<mutex> lock(fileMutex);
+        if (fs::exists(folderPath))
+        {
+            fs::remove_all(folderPath);
+            cout << "[ReadThread] Cleared folder: " << folderPath << '\n';
         }
     }
 }
