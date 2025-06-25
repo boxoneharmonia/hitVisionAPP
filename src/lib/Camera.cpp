@@ -219,6 +219,7 @@ bool Camera::getFrame(RawFrame& frame)
         else
         {
             printf("Get Frame fail! nRet [0x%x]\n", nRet);
+            this_thread::sleep_for(chrono::seconds(1));
             break;
         }
         // // ch:停止取流 | en:Stop grab image
@@ -456,7 +457,7 @@ bool readBuffer(RawFrame& rawFrame)
             }
             else 
             {
-                this_thread::sleep_for(chrono::milliseconds(50));
+                this_thread::sleep_for(chrono::milliseconds(10));
             }
         }
     }
@@ -465,7 +466,7 @@ bool readBuffer(RawFrame& rawFrame)
 
 void writeThread() 
 {
-    const int writerDelayMs = 50;
+    const int writeDelayMs = 200;
     RawFrame rawFrame;
     bool bRawFrame = false;
     Camera camera;
@@ -494,13 +495,16 @@ void writeThread()
             {
                 if (!camera.init())
                 {
-                    this_thread::sleep_for(chrono::milliseconds(100));
+                    this_thread::sleep_for(chrono::seconds(1));
                     continue;
                 }
             }
             if (!camera.getGrabbing())
             {
-                camera.startGrabbing();
+                if(!camera.startGrabbing()) {
+                    this_thread::sleep_for(chrono::seconds(1));
+                    continue;
+                }
             }
             auto start = chrono::steady_clock::now();
             bRawFrame = camera.getFrame(rawFrame);
@@ -513,8 +517,8 @@ void writeThread()
                 writeBuffer(rawFrame);
             }
             auto elapsed = chrono::steady_clock::now() - start;
-            auto waitMs = writerDelayMs - chrono::duration_cast<chrono::milliseconds>(elapsed).count();
-            cout << "[Write] Frame processed in " << chrono::duration_cast<chrono::milliseconds>(elapsed).count() << " ms\n";
+            auto waitMs = writeDelayMs - chrono::duration_cast<chrono::milliseconds>(elapsed).count();
+            // cout << "[Write] Frame processed in " << chrono::duration_cast<chrono::milliseconds>(elapsed).count() << " ms\n";
             if (waitMs > 0) {
                 this_thread::sleep_for(chrono::milliseconds(waitMs));
             }
@@ -523,7 +527,10 @@ void writeThread()
         {
             if (camera.getGrabbing())
             {
-                camera.stopGrabbing();
+                if(!camera.stopGrabbing()) {
+                    this_thread::sleep_for(chrono::seconds(1));
+                    continue;
+                }
             }
             this_thread::sleep_for(chrono::seconds(1));            
         }
@@ -532,7 +539,7 @@ void writeThread()
 
 void readThread() 
 {
-    const int readDelayMs = 100;
+    const int readDelayMs = 500;
     const string baseDir = getExecutableDir() + "/../output/images/";
     Mat srcImage;
     RawFrame rawFrame;
@@ -580,7 +587,7 @@ void readThread()
             }
             auto elapsed = chrono::steady_clock::now() - start;
             auto waitMs = readDelayMs - chrono::duration_cast<chrono::milliseconds>(elapsed).count();
-            cout << "[Read] Frame processed in " << chrono::duration_cast<chrono::milliseconds>(elapsed).count() << " ms\n";
+            // cout << "[Read] Frame processed in " << chrono::duration_cast<chrono::milliseconds>(elapsed).count() << " ms\n";
             if (waitMs > 0) {
                 this_thread::sleep_for(chrono::milliseconds(waitMs));
             }
@@ -588,15 +595,6 @@ void readThread()
         else
         {
             this_thread::sleep_for(chrono::seconds(1));
-        }
-    }
-
-    {
-        lock_guard<mutex> lock(fileMutex);
-        if (fs::exists(folderPath))
-        {
-            fs::remove_all(folderPath);
-            cout << "[ReadThread] Cleared folder: " << folderPath << '\n';
         }
     }
 }

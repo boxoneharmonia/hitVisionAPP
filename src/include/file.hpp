@@ -9,6 +9,7 @@
 #include <libgen.h>
 
 inline std::mutex fileMutex;
+inline bool fileClear = false;
 // inline std::mutex netMutex;
 inline std::string folderPath;
 

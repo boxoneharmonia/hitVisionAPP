@@ -92,13 +92,20 @@ int main()
         }
         if (dataTransBit)
         {
-            // UDPSocketRunning = true;
-            TCPSocketRunning = true;
+            if (fileClear = false) {
+                lock_guard<mutex> lock(fileMutex);
+                fileClear = true;
+                if (std::filesystem::exists(folderPath)) {
+                    std::filesystem::remove_all(folderPath);
+                    cout << " Cleared folder: " << folderPath << '\n';
+                }
+            }
         }
         else
         {
+            fileClear = false;
             // UDPSocketRunning = false;
-            TCPSocketRunning = false;
+            // TCPSocketRunning = false;
         }
         if (poseBit)
         {

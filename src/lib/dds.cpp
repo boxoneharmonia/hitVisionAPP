@@ -43,7 +43,7 @@ const float frameRateTable[4] = {
     10.f,  // 0x00 (default)
     5.f,  // 0x01
     15.f,  // 0x02
-    20.f,  // 0x03
+    2.f,  // 0x03
 };
 
 float getExposureTime(uint8_t dExpEx)
