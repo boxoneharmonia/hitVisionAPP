@@ -43,14 +43,14 @@ int main()
     thread t1(writeThread);
     thread t2(readThread);
     // thread t3(UDPThread);
-    thread t3(TCPThread);
+    // thread t3(TCPThread);
     thread t4(DDSSubThread);
     thread t5(visionThread);
 
-    DDSPub_t* pub = DDSPub_create();
-    DDSPub_set_domain_id(pub, 1);
-    DDSPub_init(pub);
-    printf("DDSPub created.\n");
+    // DDSPub_t* pub = DDSPub_create();
+    // DDSPub_set_domain_id(pub, 1);
+    // DDSPub_init(pub);
+    // printf("DDSPub created.\n");
 
     while(programRunning)
     {
@@ -92,13 +92,20 @@ int main()
         }
         if (dataTransBit)
         {
-            // UDPSocketRunning = true;
-            TCPSocketRunning = true;
+            if (fileClear = false) {
+                lock_guard<mutex> lock(fileMutex);
+                fileClear = true;
+                if (std::filesystem::exists(folderPath)) {
+                    std::filesystem::remove_all(folderPath);
+                    cout << " Cleared folder: " << folderPath << '\n';
+                }
+            }
         }
         else
         {
+            fileClear = false;
             // UDPSocketRunning = false;
-            TCPSocketRunning = false;
+            // TCPSocketRunning = false;
         }
         if (poseBit)
         {
@@ -134,21 +141,21 @@ int main()
         memcpy(telemetry + offset, poseResult, sizeof(poseResult)); offset += sizeof(poseResult);
         memcpy(telemetry + offset, flyWheel, sizeof(flyWheel)); offset += sizeof(flyWheel);}
 
-        DDSPub(telemetry, TM_receive_cnt, pub, APP_DATA_INDEX);
+        DDSPub(telemetry, TM_receive_cnt);
         this_thread::sleep_for(chrono::milliseconds(1000));
     }
 
-    DDSPub_destroy(pub); //摧毁pub
+    // DDSPub_destroy(pub); //摧毁pub
     DDSSub_destroy(g_sub); //摧毁sub - Maybe there is a bug in DDSSub making it unstoppable
     pthread_cancel(t4.native_handle());
     
-    cout << "DDS destroyed." << endl;
+    // cout << "DDS destroyed." << endl;
 
-    t1.join();
-    t2.join();
-    t3.join();
-    t4.join();
-    t5.join();
+    if (t1.joinable()) t1.join();
+    if (t2.joinable()) t2.join();
+    // if (t3.joinable()) t3.join();
+    if (t4.joinable()) t4.join();
+    if (t5.joinable()) t5.join();
 
     this_thread::sleep_for(chrono::seconds(1));
     cout << "Program exited." << endl;

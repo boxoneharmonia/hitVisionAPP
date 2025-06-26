@@ -1,7 +1,10 @@
 #include "dds.hpp"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 #define SYNC_HEAD 0xEB90
-#define DATA_LENGTH 33
+#define DATA_LENGTH 62
 #define APP_MAIN_ID 0x01
 #define APP_SUB_ID 0x11
 #define SYS_MAIN_ID 0x01
@@ -10,6 +13,7 @@
 #define TELECONTROL_TYPE 0x01
 
 #define BIT(x) (1U << (x))
+#define DDS_AUTO_PUB true
 
 using namespace std;
 
@@ -43,7 +47,7 @@ const float frameRateTable[4] = {
     10.f,  // 0x00 (default)
     5.f,  // 0x01
     15.f,  // 0x02
-    20.f,  // 0x03
+    2.f,  // 0x03
 };
 
 float getExposureTime(uint8_t dExpEx)
@@ -317,14 +321,14 @@ void buildArrayString(const uint8_t* data, int size, char* out)
     strcat(out, "]");
 }
 
-void DDSPub(uint8_t data_message[], uint8_t receive_cnt, DDSPub_t* pub, int topic)
+void DDSPub(uint8_t data_message[], const uint8_t &receive_cnt, DDSPub_t* pub, int topic)
 {
 	static uint8_t send_frame_count = 0;
 	static uint8_t send_cnt = 0;
 	time_t t = time(NULL);
 	uint32_t time_of_send = (uint32_t)t;
 	static int8_t receive_cnt_old = 0;
-	if(receive_cnt != receive_cnt_old || true)
+	if(receive_cnt != receive_cnt_old || DDS_AUTO_PUB)
 	{
 		uint8_t temp[66] = { 0 };
 
@@ -399,6 +403,28 @@ void DDSPub(uint8_t data_message[], uint8_t receive_cnt, DDSPub_t* pub, int topi
 		{
 			printf("[Publisher] Failed to send message\n");
 		}
+	}
+	receive_cnt_old = receive_cnt;
+}
+
+void DDSPub(uint8_t data_message[], const uint8_t &receive_cnt) {
+	static uint8_t send_cnt = 0;
+	static int8_t receive_cnt_old = 0;
+	if(receive_cnt != receive_cnt_old || DDS_AUTO_PUB) {
+		uint8_t temp[52] = {0};
+		for (int i = 0; i < 50; i++) {
+			temp[i] = data_message[i];
+		}
+		temp[50] = receive_cnt;
+		send_cnt++;
+		temp[51] = send_cnt;
+		ofstream ddsFile;
+		ddsFile.open("/emmc/tele_data/tele_app1", ios::binary);
+		if (ddsFile.is_open()) {
+			ddsFile.write(reinterpret_cast<const char*>(temp), 52);
+		}
+		ddsFile.flush(); 
+		ddsFile.close(); 
 	}
 	receive_cnt_old = receive_cnt;
 }

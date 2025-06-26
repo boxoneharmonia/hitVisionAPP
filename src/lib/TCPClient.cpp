@@ -92,7 +92,7 @@ void TCPClient::sendFile(const string &ip, uint16_t port, const string &filePath
 void TCPThread()
 {
     TCPClient client;
-    string targetIP = "192.168.0.170";
+    string targetIP = "192.168.1.170";
     uint16_t targetPort = 6555;
 
     string imagePath;
