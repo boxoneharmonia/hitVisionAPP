@@ -423,6 +423,7 @@ void DDSPub(uint8_t data_message[], const uint8_t &receive_cnt) {
 		if (ddsFile.is_open()) {
 			ddsFile.write(reinterpret_cast<const char*>(temp), 52);
 		}
+		ddsFile.flush(); 
 		ddsFile.close(); 
 	}
 	receive_cnt_old = receive_cnt;

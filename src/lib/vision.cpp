@@ -70,6 +70,7 @@ void visionThread()
                         static array<float, 4> qMarker;
                         arucoDetected = arucoDetect(imagePath, cameraMatrix, distCoeffs, tMarker, qMarker);
                         if (arucoDetected) {
+                            confidence = 1.0;
                             tmc = tMarker;
                             pose = qMarker;
                         }
