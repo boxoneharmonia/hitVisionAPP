@@ -47,10 +47,10 @@ int main()
     thread t4(DDSSubThread);
     thread t5(visionThread);
 
-    DDSPub_t* pub = DDSPub_create();
-    DDSPub_set_domain_id(pub, 1);
-    DDSPub_init(pub);
-    printf("DDSPub created.\n");
+    // DDSPub_t* pub = DDSPub_create();
+    // DDSPub_set_domain_id(pub, 1);
+    // DDSPub_init(pub);
+    // printf("DDSPub created.\n");
 
     while(programRunning)
     {
@@ -141,11 +141,11 @@ int main()
         memcpy(telemetry + offset, poseResult, sizeof(poseResult)); offset += sizeof(poseResult);
         memcpy(telemetry + offset, flyWheel, sizeof(flyWheel)); offset += sizeof(flyWheel);}
 
-        DDSPub(telemetry, TM_receive_cnt, pub, APP_DATA_INDEX);
+        DDSPub(telemetry, TM_receive_cnt);
         this_thread::sleep_for(chrono::milliseconds(1000));
     }
 
-    DDSPub_destroy(pub); //摧毁pub
+    // DDSPub_destroy(pub); //摧毁pub
     DDSSub_destroy(g_sub); //摧毁sub - Maybe there is a bug in DDSSub making it unstoppable
     pthread_cancel(t4.native_handle());
     
