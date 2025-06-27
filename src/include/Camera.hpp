@@ -19,7 +19,7 @@ inline std::atomic_bool cameraSetting = false;
 
 inline float exposureTime = 5000;
 inline float gain = 0;
-inline float frameRate = 10;
+inline float frameRate = 5;
 
 struct RawFrame
 {

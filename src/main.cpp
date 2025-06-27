@@ -5,15 +5,35 @@
 #include "TCPClient.hpp"
 #include "file.hpp"
 #include "dds.hpp"
+#include "global_state.hpp"
+
+#include <csignal>
+
+void handleSignal(int)
+{
+    programRunning = false;
+    cameraRunning = false;
+    cameraSetting = false;
+    TCPSocketRunning = false;
+    // UDPSocketRunning = false;
+    visionRunning = false;
+}
+
+// Shell scripts can gracefully terminate the program by sending
+// SIGINT or SIGTERM to the process. The handler clears all running
+// flags so the threads exit cleanly.
 
 using namespace std;
 
-int main() 
+int main()
 {
     uint8_t dExpEx = 0x00;
     uint8_t dGainEx = 0x00;
     uint8_t dFrameRateEx = 0x00;
     uint8_t telemetry[50] = {0};
+
+    std::signal(SIGINT, handleSignal);
+    std::signal(SIGTERM, handleSignal);
     cameraSetting = false;
     cameraRunning = false;
     // UDPSocketRunning = false;
@@ -23,16 +43,16 @@ int main()
     thread t1(writeThread);
     thread t2(readThread);
     // thread t3(UDPThread);
-    thread t3(TCPThread);
+    // thread t3(TCPThread);
     thread t4(DDSSubThread);
     thread t5(visionThread);
 
-    DDSPub_t* pub = DDSPub_create();
-    DDSPub_set_domain_id(pub, 1);
-    DDSPub_init(pub);
-    printf("DDSPub created.\n");
+    // DDSPub_t* pub = DDSPub_create();
+    // DDSPub_set_domain_id(pub, 1);
+    // DDSPub_init(pub);
+    // printf("DDSPub created.\n");
 
-    while(1)
+    while(programRunning)
     {
         {std::lock_guard<std::mutex> lock(ddsMutex);
         bool expSettingBit = (dExpBit && dExpEx != dExp);
@@ -72,13 +92,27 @@ int main()
         }
         if (dataTransBit)
         {
-            // UDPSocketRunning = true;
-            TCPSocketRunning = true;
+            if (!fileClear) {
+                lock_guard<mutex> lock(fileMutex);
+                fileClear = true;
+                if (filesystem::exists(folderPath)) {
+                    filesystem::remove_all(folderPath);
+                    cout << " Cleared folder: " << folderPath << '\n';
+                }
+                else {
+                    cout << " No such folder: " << folderPath << '\n';
+                }
+            }
         }
         else
         {
+            if (!filesystem::exists(folderPath) && fileClear)
+            {
+                filesystem::create_directories(folderPath);
+            }
+            fileClear = false;
             // UDPSocketRunning = false;
-            TCPSocketRunning = false;
+            // TCPSocketRunning = false;
         }
         if (poseBit)
         {
@@ -114,17 +148,24 @@ int main()
         memcpy(telemetry + offset, poseResult, sizeof(poseResult)); offset += sizeof(poseResult);
         memcpy(telemetry + offset, flyWheel, sizeof(flyWheel)); offset += sizeof(flyWheel);}
 
-        DDSPub(telemetry, TM_receive_cnt, pub, APP_DATA_INDEX);
+        DDSPub(telemetry, TM_receive_cnt);
         this_thread::sleep_for(chrono::milliseconds(1000));
     }
 
     // DDSPub_destroy(pub); //摧毁pub
-    // DDSSub_destroy(sub); //摧毁pub
-    // cameraRunning = false;
-    // socketRunning = false;
-    // py.callFunction("release");
-    // this_thread::sleep_for(chrono::seconds(1));
-    // cout << "Program exited." << endl;
+    DDSSub_destroy(g_sub); //摧毁sub - Maybe there is a bug in DDSSub making it unstoppable
+    pthread_cancel(t4.native_handle());
+    
+    // cout << "DDS destroyed." << endl;
+
+    if (t1.joinable()) t1.join();
+    if (t2.joinable()) t2.join();
+    // if (t3.joinable()) t3.join();
+    if (t4.joinable()) t4.join();
+    if (t5.joinable()) t5.join();
+
+    this_thread::sleep_for(chrono::seconds(1));
+    cout << "Program exited." << endl;
 
     return 0;
 }

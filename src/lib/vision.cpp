@@ -3,6 +3,7 @@
 #include "CPy.hpp"
 #include "dds.hpp"
 #include "Camera.hpp"
+#include "global_state.hpp"
 #include <opencv2/aruco.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -23,14 +24,14 @@ void visionThread()
     Mat cameraMatrix, distCoeffs;
     cameraMatrix = (Mat_<double>(3,3) << 1814.6, 0, 619.7631, 0, 1813.0, 480.8544, 0, 0, 1);
     distCoeffs = (Mat_<double>(1,5) << 0.0374, -0.0373, 0.0, 0.0, -0.01);
-    VelocityEstimator vest(0.1f, 0.3f);
+    VelocityEstimator vest(0.5f, 0.3f);
     PyCaller py(baseDir, "model");
     py.callFunction("load_model");
-    while (1)
+    while (programRunning)
     {
         if (visionRunning)
         {
-            vest.updateParam(1.0f/frameRate, 0.3f);
+            // vest.updateParam(1.0f/frameRate, 0.3f);
             readIndexFile(imageIndexNew);
             imageIndexNew--;
             if (imageIndexNew > imageIndex)
@@ -69,6 +70,7 @@ void visionThread()
                         static array<float, 4> qMarker;
                         arucoDetected = arucoDetect(imagePath, cameraMatrix, distCoeffs, tMarker, qMarker);
                         if (arucoDetected) {
+                            confidence = 1.0;
                             tmc = tMarker;
                             pose = qMarker;
                         }
@@ -96,6 +98,7 @@ void visionThread()
             this_thread::sleep_for(chrono::seconds(1));
         }
     }
+    py.callFunction("release");
 }
 
 bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoeffs, 
@@ -161,6 +164,14 @@ bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoe
             tAvg[j] = static_cast<float>(t_sum[j]);
         averageQuat(quats, qAvg);
     }
+
+    for (size_t i = 0; i < numMarkers; i++) {
+        printf("Marker ID: %d | Position: [%.3f, %.3f, %.3f] | Quaternion: [%.3f, %.3f, %.3f, %.3f]\n",
+               validIds[i],
+               tvecs[i][0], tvecs[i][1], tvecs[i][2],
+               quats[i][0], quats[i][1], quats[i][2], quats[i][3]);
+    }
+
     return true;
 }
 
