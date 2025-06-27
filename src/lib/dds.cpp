@@ -44,10 +44,10 @@ const float gainTable[4] = {
 };
 
 const float frameRateTable[4] = {
-    10.f,  // 0x00 (default)
-    5.f,  // 0x01
+    5.f,  // 0x00 (default)
+    10.f,  // 0x01
     15.f,  // 0x02
-    2.f,  // 0x03
+    3.f,  // 0x03
 };
 
 float getExposureTime(uint8_t dExpEx)
@@ -419,12 +419,25 @@ void DDSPub(uint8_t data_message[], const uint8_t &receive_cnt) {
 		send_cnt++;
 		temp[51] = send_cnt;
 		ofstream ddsFile;
-		ddsFile.open("/emmc/tele_data/tele_app1", ios::binary);
+		ddsFile.open("/emmc/tele_data/tele_app1", ios::binary | ios::trunc);
 		if (ddsFile.is_open()) {
 			ddsFile.write(reinterpret_cast<const char*>(temp), 52);
 		}
 		ddsFile.flush(); 
 		ddsFile.close(); 
+
+		ifstream ddsCheck("/emmc/tele_data/tele_app1", ios::binary);
+		if (ddsCheck.is_open()) {
+            uint8_t read_back[52] = {0};
+            ddsCheck.read(reinterpret_cast<char*>(read_back), 52);
+            ddsCheck.close();
+            for (int i = 0; i < 52; i++) {
+                cout << hex << setw(2) << setfill('0') << static_cast<int>(read_back[i]) << " ";
+                if ((i + 1) % 13 == 0) std::cout << std::endl;
+            }
+            std::cout << std::dec << std::endl;
+        }
+
 	}
 	receive_cnt_old = receive_cnt;
 }
