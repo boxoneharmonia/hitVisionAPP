@@ -433,9 +433,14 @@ void DDSPub(uint8_t data_message[], const uint8_t &receive_cnt) {
             ddsCheck.close();
             for (int i = 0; i < 52; i++) {
                 cout << hex << setw(2) << setfill('0') << static_cast<int>(read_back[i]) << " ";
-                if ((i + 1) % 13 == 0) std::cout << std::endl;
+                if ((i + 1) % 13 == 0) cout << endl;
             }
-            std::cout << std::dec << std::endl;
+            cout << dec << endl;
+			float floats[10] = {0};
+            memcpy(floats, read_back + 7, sizeof(floats));
+			for (int i = 0; i < 10; i++) {
+                cout << "float[" << i << "] = " << floats[i] << endl;
+            }
         }
 
 	}
