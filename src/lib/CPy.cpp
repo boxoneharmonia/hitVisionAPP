@@ -19,7 +19,7 @@ PyCaller::~PyCaller()
 void PyCaller::initialize()
 {
     bool is_owner = false;
-    call_once(py_init, [&]{
+    call_once(py_init, [&is_owner]{
         Py_Initialize();
         PyEval_SaveThread();
         is_owner = true;
