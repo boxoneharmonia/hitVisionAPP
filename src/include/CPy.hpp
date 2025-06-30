@@ -25,6 +25,15 @@ private:
     std::string module_name_;
     PyObject* pModule_;
     bool initialized_;
+    bool interpreter_owner_;
+};
+
+class GILGuard {
+public:
+    GILGuard() { gstate_ = PyGILState_Ensure(); }
+    ~GILGuard() { PyGILState_Release(gstate_); }
+private:
+    PyGILState_STATE gstate_;
 };
 
 PyObject* toPyTuple(const std::vector<std::string>& vec);

@@ -3,6 +3,8 @@
 
 using namespace std;
 
+static once_flag py_init;
+
 PyCaller::PyCaller(const string &module_dir, const string &module_name)
     : module_dir_(module_dir), module_name_(module_name), pModule_(nullptr), initialized_(false)
 {
@@ -16,7 +18,15 @@ PyCaller::~PyCaller()
 
 void PyCaller::initialize()
 {
-    Py_Initialize();
+    bool is_owner = false;
+    call_once(py_init, [&is_owner]{
+        Py_Initialize();
+        PyEval_SaveThread();
+        is_owner = true;
+    });
+    interpreter_owner_ = is_owner;
+    
+    GILGuard grd;
 
     PyRun_SimpleString("import sys");
     string path_cmd = "sys.path.append('" + module_dir_ + "')";
@@ -40,8 +50,10 @@ void PyCaller::initialize()
 void PyCaller::finalize()
 {
     Py_XDECREF(pModule_);
-    if (Py_IsInitialized())
+    if (Py_IsInitialized() && interpreter_owner_) {
+        GILGuard grd;
         Py_Finalize();
+    }
 }
 
 bool PyCaller::isInitialized()
@@ -58,6 +70,8 @@ bool PyCaller::callFunction(const std::string &func_name, PyObject *pArgs)
 {
     if (!initialized_)
         return false;
+
+    GILGuard grd;
 
     PyObject *pFunc = PyObject_GetAttrString(pModule_, func_name.c_str());
     if (pFunc && PyCallable_Check(pFunc))
@@ -92,6 +106,8 @@ PyObject *PyCaller::callFunctionWithRet(const std::string &func_name, PyObject *
 {
     if (!initialized_)
         return nullptr;
+
+    GILGuard grd;
 
     PyObject *pFunc = PyObject_GetAttrString(pModule_, func_name.c_str());
     if (pFunc && PyCallable_Check(pFunc))

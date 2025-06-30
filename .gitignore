@@ -6,3 +6,4 @@ thirdparty/dds/lib
 thirdparty/opencv/lib
 thirdparty/poco/
 thirdparty/python/lib
+compile.sh
