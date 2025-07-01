@@ -12,6 +12,7 @@ inline std::atomic_bool visionRunning = false;
 inline uint8_t dectResult[3] = {0};
 inline float poseResult[10] = {0};
 
+
 void visionThread();
 bool arucoDetect(const std::string &path, const cv::Mat& cameraMatrix, const cv::Mat& distCoeffs, std::array<float, 3> &tAvg, std::array<float, 4> &qAvg);
 void dcmToQuat(cv::Mat &R, std::array<float, 4> &qOut);

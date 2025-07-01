@@ -15,7 +15,7 @@ void handleSignal(int)
     programRunning = false;
     cameraRunning = false;
     cameraSetting = false;
-    TCPSocketRunning = false;
+    // TCPSocketRunning = false;
     // UDPSocketRunning = false;
     visionRunning = false;
 }
@@ -38,7 +38,7 @@ int main()
     cameraSetting = false;
     cameraRunning = false;
     // UDPSocketRunning = false;
-    TCPSocketRunning = false;
+    // TCPSocketRunning = false;
     visionRunning = false;
     controlRunning = 0x10;
 
@@ -156,9 +156,9 @@ int main()
     }
 
     // DDSPub_destroy(pub); //摧毁pub
-    DDSSub_destroy(g_sub); //摧毁sub - Maybe there is a bug in DDSSub making it unstoppable
-    pthread_cancel(t4.native_handle());
-    
+    // DDSSub_destroy(g_sub); //摧毁sub 
+    // pthread_cancel(t4.native_handle());
+  
     // cout << "DDS destroyed." << endl;
 
     if (t1.joinable()) t1.join();
@@ -167,6 +167,7 @@ int main()
     if (t4.joinable()) t4.join();
     if (t5.joinable()) t5.join();
     if (t6.joinable()) t6.join();
+
 
     this_thread::sleep_for(chrono::seconds(1));
     cout << "Program exited." << endl;

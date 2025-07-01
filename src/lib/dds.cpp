@@ -1,5 +1,10 @@
 #include "dds.hpp"
+#include "global_state.hpp"
 #include <iostream>
+#include <cstdio>
+#include <thread>
+
+
 #include <fstream>
 #include <iomanip>
 
@@ -437,7 +442,9 @@ void DDSPub(uint8_t data_message[], const uint8_t &receive_cnt) {
             }
             cout << dec << endl;
 			float floats[10] = {0};
-            memcpy(floats, read_back + 7, sizeof(floats));
+
+            memcpy(floats, read_back + 6, sizeof(floats));
+
 			for (int i = 0; i < 10; i++) {
                 cout << "float[" << i << "] = " << floats[i] << endl;
             }
@@ -447,12 +454,51 @@ void DDSPub(uint8_t data_message[], const uint8_t &receive_cnt) {
 	receive_cnt_old = receive_cnt;
 }
 
+bool DDSSub(const char path[]) {
+	ifstream ddsSub(path, ios::binary);
+	if (!ddsSub.is_open()) return false;
+	std::lock_guard<std::mutex> lock(ddsMutex);
+	uint8_t read_back[2] = {0};
+	ddsSub.read(reinterpret_cast<char*>(read_back), 2);
+	ddsSub.close();
+	if (ddsSub.gcount() < 2) return false;
+	for (int i = 0; i < 2; i++) {
+		cout << hex << setw(2) << setfill('0') << static_cast<int>(read_back[i]) << " ";
+	}
+	cout << dec << endl;
+	TM_receive_cnt++;
+	// 第1个字节
+	imageBit = (read_back[0] & BIT(7)) ? 1 : 0;
+	dataTransBit = (read_back[0] & BIT(6)) ? 1 : 0;
+	poseBit = (read_back[0] & BIT(5)) ? 1 : 0;
+	controlBit = ((read_back[0] >> 3) & 0x03);
+	dExpBit = (read_back[0] & BIT(2)) ? 1 : 0;
+	dGainBit = (read_back[0] & BIT(1)) ? 1 : 0;
+	dFrameRateBit = (read_back[0] & BIT(0)) ? 1 : 0;
+
+	// 第2个字节
+	dExp = (read_back[1] >> 4) & 0x0F;
+	dGain = (read_back[1] >> 2) & 0x03;
+	dFrameRate = read_back[1] & 0x03;
+	return true;
+}
+
 void DDSSubThread()
 {
-    g_sub = DDSSub_creat();
-    DDSSub_set_domain_id(g_sub, 2);
-    DDSSub_registerCallback(myCallbackFunction);
-    int subAddr[1] = {TELEMETRY_DATA_INDEX};
-    DDSSub_init(g_sub, subAddr, 1);
-    printf("DDSSub exited");
+    // g_sub = DDSSub_creat();
+    // DDSSub_set_domain_id(g_sub, 2);
+    // DDSSub_registerCallback(myCallbackFunction);
+    // int subAddr[1] = {TELEMETRY_DATA_INDEX};
+    // DDSSub_init(g_sub, subAddr, 1);
+    // printf("DDSSub exited");
+	string path = "/emmc/tele_data/control_app1";
+	while (programRunning) {
+		if (DDSSub(path.c_str())) {
+			remove(path.c_str());
+			this_thread::sleep_for(chrono::milliseconds(500));
+		}
+		else {
+			this_thread::sleep_for(chrono::milliseconds(500));
+		}
+	}
 }

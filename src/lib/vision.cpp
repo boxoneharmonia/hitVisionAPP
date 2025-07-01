@@ -26,11 +26,15 @@ void visionThread()
     distCoeffs = (Mat_<double>(1,5) << 0.0374, -0.0373, 0.0, 0.0, -0.01);
     VelocityEstimator vest(0.5f, 0.3f);
     PyCaller py(baseDir, "model");
-    py.callFunction("load_model");
+    static bool modelLoaded = false;
     while (programRunning)
     {
         if (visionRunning)
         {
+            if (!modelLoaded) {
+                py.callFunction("load_model");
+                modelLoaded = true;
+            }
             // vest.updateParam(1.0f/frameRate, 0.3f);
             readIndexFile(imageIndexNew);
             imageIndexNew--;
@@ -96,9 +100,12 @@ void visionThread()
         else
         {
             this_thread::sleep_for(chrono::seconds(1));
+            if (modelLoaded) {
+                py.callFunction("release");
+                modelLoaded = false;
+            }
         }
     }
-    py.callFunction("release");
 }
 
 bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoeffs, 
