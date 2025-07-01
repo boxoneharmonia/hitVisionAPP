@@ -14,7 +14,7 @@ void handleSignal(int)
     programRunning = false;
     cameraRunning = false;
     cameraSetting = false;
-    TCPSocketRunning = false;
+    // TCPSocketRunning = false;
     // UDPSocketRunning = false;
     visionRunning = false;
 }
@@ -37,7 +37,7 @@ int main()
     cameraSetting = false;
     cameraRunning = false;
     // UDPSocketRunning = false;
-    TCPSocketRunning = false;
+    // TCPSocketRunning = false;
     visionRunning = false;
 
     thread t1(writeThread);

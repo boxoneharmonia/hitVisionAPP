@@ -3,8 +3,6 @@
 
 using namespace std;
 
-static once_flag py_init;
-
 PyCaller::PyCaller(const string &module_dir, const string &module_name)
     : module_dir_(module_dir), module_name_(module_name), pModule_(nullptr), initialized_(false)
 {
@@ -19,13 +17,10 @@ PyCaller::~PyCaller()
 void PyCaller::initialize()
 {
     bool is_owner = false;
-    Py_Initialize();
-    is_owner = true;
-    // call_once(py_init, [&is_owner]{
-    //     Py_Initialize();
-    //     PyEval_SaveThread();
-    //     is_owner = true;
-    // });
+    if (!Py_IsInitialized()) {
+        Py_Initialize();
+        is_owner = true;
+    }
     interpreter_owner_ = is_owner;
     
     // GILGuard grd;
@@ -34,9 +29,7 @@ void PyCaller::initialize()
     string path_cmd = "sys.path.append('" + module_dir_ + "')";
     PyRun_SimpleString(path_cmd.c_str());
 
-    PyObject *pName = PyUnicode_DecodeFSDefault(module_name_.c_str());
-    pModule_ = PyImport_Import(pName);
-    Py_XDECREF(pName);
+    pModule_ = PyImport_ImportModule(module_name_.c_str());
 
     if (pModule_ == nullptr)
     {

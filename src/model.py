@@ -3,53 +3,51 @@ sys.path.append('/home/user/.local/lib/python3.8/site-packages')
 
 import tensorrt as trt
 import pycuda.driver as cuda
-import pycuda.autoinit
 import numpy as np
 from PIL import Image
 import time
-import numpy as np
 import gc
 import os.path as osp
 
 TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
 
+cuda_context = None
 engine_1 = None
 context_1 = None
 bindings_1 = []
 inputs_1 = []
 outputs_1 = []
-
-engine_2 = None
-context_2 = None
-bindings_2 = []
-inputs_2 = []
-outputs_2 = []
-
 stream = None
 
+def load_engine(path):
+    with open(path, 'rb') as f, trt.Runtime(TRT_LOGGER) as runtime:
+        return runtime.deserialize_cuda_engine(f.read())
+
+def setup_io(engine):
+    bindings = []
+    inputs = []
+    outputs = []
+    for i in range(engine.num_bindings):
+        shape = engine.get_binding_shape(i)
+        if -1 in shape:
+            shape = [1 if dim == -1 else dim for dim in shape]
+        dtype = np.float32
+        size = trt.volume(shape)
+        host_mem = cuda.pagelocked_empty(size, dtype)
+        device_mem = cuda.mem_alloc(host_mem.nbytes)
+        bindings.append(int(device_mem))
+        if engine.binding_is_input(i):
+            inputs.append((host_mem, device_mem))
+        else:
+            outputs.append((host_mem, device_mem))
+    return bindings, inputs, outputs
+
 def load_model():
-    global engine_1, engine_2, context_1, context_2, bindings_1, bindings_2, inputs_1, inputs_2, outputs_1, outputs_2, stream
+    global engine_1, context_1, bindings_1, inputs_1, outputs_1, stream, cuda_context
 
-    def load_engine(path):
-        with open(path, 'rb') as f, trt.Runtime(TRT_LOGGER) as runtime:
-            return runtime.deserialize_cuda_engine(f.read())
-
-    def setup_io(engine):
-        bindings = []
-        inputs = []
-        outputs = []
-        for i in range(engine.num_bindings):
-            shape = engine.get_binding_shape(i)
-            dtype = np.float32
-            size = trt.volume(shape)
-            host_mem = cuda.pagelocked_empty(size, dtype)
-            device_mem = cuda.mem_alloc(host_mem.nbytes)
-            bindings.append(int(device_mem))
-            if engine.binding_is_input(i):
-                inputs.append((host_mem, device_mem))
-            else:
-                outputs.append((host_mem, device_mem))
-        return bindings, inputs, outputs
+    cuda.init()
+    device = cuda.Device(0)
+    cuda_context = device.make_context()
 
     engine_1_path = "/mmc/app/install/APP_1/bin/model_1.engine"
     if not osp.exists(engine_1_path):
@@ -59,12 +57,6 @@ def load_model():
     engine_1 = load_engine(engine_1_path)
     context_1 = engine_1.create_execution_context()
     bindings_1, inputs_1, outputs_1 = setup_io(engine_1)
-
-    # print("Loading engine_2...")
-    # engine_2 = load_engine("model_2.engine")
-    # context_2 = engine_2.create_execution_context()
-    # bindings_2, inputs_2, outputs_2 = setup_io(engine_2)
-
     stream = cuda.Stream()
     print("Models loaded.")
         
@@ -98,6 +90,7 @@ def infer_1(path):
 
     image = Image.open(path).convert("RGB")
     resized = preprocess(image, size=256)
+    context_1.set_binding_shape(0, resized.shape)
 
     start = time.time()
 
@@ -127,18 +120,18 @@ def infer_1(path):
     return confidence, bbox, tmc
 
 def release():
-    global engine_1, engine_2, context_1, context_2, bindings_1, bindings_2, inputs_1, inputs_2, outputs_1, outputs_2, stream
-    del engine_1, engine_2, context_1, context_2, stream
+    global engine_1, context_1, bindings_1, inputs_1, outputs_1, stream, cuda_context
+    del engine_1, context_1, stream
+    cuda_context.detach()
+    del cuda_context
     bindings_1.clear()
-    bindings_2.clear()
     inputs_1.clear()
-    inputs_2.clear()
     outputs_1.clear()
-    outputs_2.clear()
     gc.collect()
     print("TensorRT resources released.")
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
+    print("model.py loaded.")
     # load_model()
     # for i in range (10):
     #     infer("0.bmp")
