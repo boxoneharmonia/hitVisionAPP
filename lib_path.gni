@@ -10,7 +10,6 @@ src_libs = [
   "//src:Camera",
   "//src:DDS",
   "//src:cJSON",
-  "//src:vision"
   "//src:vision",
   "//src:control",
 ]
