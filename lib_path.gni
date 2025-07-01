@@ -11,6 +11,8 @@ src_libs = [
   "//src:DDS",
   "//src:cJSON",
   "//src:vision"
+  "//src:vision",
+  "//src:control",
 ]
 
 thirdparty_include = [
@@ -65,3 +67,5 @@ src_CPy = [ "//src/lib/CPy.cpp" ]
 src_cJSON = [ "//src/lib/cJSON.c" ]
 src_Camera = [ "//src/lib/Camera.cpp" ]
 src_vision = [ "//src/lib/vision.cpp" ]
+src_control = [ "//src/lib/control.cpp" ]
+

@@ -43,6 +43,7 @@ def setup_io(engine):
     return bindings, inputs, outputs
 
 def load_model():
+
     global engine_1, context_1, bindings_1, inputs_1, outputs_1, stream, cuda_context
 
     cuda.init()

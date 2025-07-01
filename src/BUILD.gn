@@ -115,6 +115,21 @@ static_library("vision")
   sources = src_vision
 }
 
+static_library("control")
+{
+  if (target_cpu == "x64")
+  {
+
+  }
+  else if (target_cpu == "arm64")
+  {
+
+  }
+  deps = thirdparty_libs + ["//src:Pycaller"]
+  include_dirs = src_include + thirdparty_include
+  sources = src_control
+}
+
 executable("hitVisionNavi")
 {
   libs = ["pthread"]

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cstdio>
 #include <thread>
+
+
 #include <fstream>
 #include <iomanip>
 
@@ -440,7 +442,9 @@ void DDSPub(uint8_t data_message[], const uint8_t &receive_cnt) {
             }
             cout << dec << endl;
 			float floats[10] = {0};
+
             memcpy(floats, read_back + 6, sizeof(floats));
+
 			for (int i = 0; i < 10; i++) {
                 cout << "float[" << i << "] = " << floats[i] << endl;
             }

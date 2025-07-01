@@ -3,6 +3,8 @@
 
 using namespace std;
 
+static once_flag py_init;
+
 PyCaller::PyCaller(const string &module_dir, const string &module_name)
     : module_dir_(module_dir), module_name_(module_name), pModule_(nullptr), initialized_(false)
 {
@@ -17,6 +19,7 @@ PyCaller::~PyCaller()
 void PyCaller::initialize()
 {
     bool is_owner = false;
+
     if (!Py_IsInitialized()) {
         Py_Initialize();
         is_owner = true;
@@ -24,6 +27,7 @@ void PyCaller::initialize()
     interpreter_owner_ = is_owner;
     
     // GILGuard grd;
+
 
     PyRun_SimpleString("import sys");
     string path_cmd = "sys.path.append('" + module_dir_ + "')";
@@ -46,6 +50,7 @@ void PyCaller::finalize()
 {
     Py_XDECREF(pModule_);
     if (Py_IsInitialized() && interpreter_owner_) {
+
         // GILGuard grd;
         Py_Finalize();
     }

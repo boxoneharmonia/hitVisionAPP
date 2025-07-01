@@ -1,6 +1,7 @@
 #include "Camera.hpp"
 #include "CPy.hpp"
 #include "vision.hpp"
+#include "control.hpp"
 // #include "UDPClient.hpp"
 #include "TCPClient.hpp"
 #include "file.hpp"
@@ -39,6 +40,7 @@ int main()
     // UDPSocketRunning = false;
     // TCPSocketRunning = false;
     visionRunning = false;
+    controlRunning = 0x10;
 
     thread t1(writeThread);
     thread t2(readThread);
@@ -46,6 +48,7 @@ int main()
     // thread t3(TCPThread);
     thread t4(DDSSubThread);
     thread t5(visionThread);
+    thread t6(ControlThread);
 
     // DDSPub_t* pub = DDSPub_create();
     // DDSPub_set_domain_id(pub, 1);
@@ -155,7 +158,7 @@ int main()
     // DDSPub_destroy(pub); //摧毁pub
     // DDSSub_destroy(g_sub); //摧毁sub 
     // pthread_cancel(t4.native_handle());
-    
+  
     // cout << "DDS destroyed." << endl;
 
     if (t1.joinable()) t1.join();
@@ -163,6 +166,8 @@ int main()
     // if (t3.joinable()) t3.join();
     if (t4.joinable()) t4.join();
     if (t5.joinable()) t5.join();
+    if (t6.joinable()) t6.join();
+
 
     this_thread::sleep_for(chrono::seconds(1));
     cout << "Program exited." << endl;
