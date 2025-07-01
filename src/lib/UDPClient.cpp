@@ -1,5 +1,6 @@
 #include "UDPClient.hpp"
 #include "file.hpp"
+#include "global_state.hpp"
 using namespace std;
 #define CHUNK_SIZE 1024
 
@@ -83,7 +84,7 @@ void UDPClient::sendFile(const string &ip, uint16_t port, const string &filePath
 void UDPThread()
 {
     UDPClient client;
-    string targetIP = "192.168.0.170";
+    string targetIP = "192.168.1.170";
     uint16_t targetPort = 6555;
 
     string imagePath;
@@ -92,7 +93,7 @@ void UDPThread()
 
     client.connectAddress(targetIP, targetPort);
 
-    while (1)
+    while (programRunning)
     {
         if (UDPSocketRunning)
         {

@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/home/user/.local/lib/python3.8/site-packages')
+
 import tensorrt as trt
 import pycuda.driver as cuda
 import pycuda.autoinit
@@ -6,6 +9,7 @@ from PIL import Image
 import time
 import numpy as np
 import gc
+import os.path as osp
 
 TRT_LOGGER = trt.Logger(trt.Logger.WARNING)
 
@@ -47,8 +51,12 @@ def load_model():
                 outputs.append((host_mem, device_mem))
         return bindings, inputs, outputs
 
-    print("Loading engine_1...")
-    engine_1 = load_engine("model_1.engine")
+    engine_1_path = "/mmc/app/install/APP_1/bin/model_1.engine"
+    if not osp.exists(engine_1_path):
+        engine_1_path = "model_1.engine"
+
+    print(f"Loading engine_1 from: {engine_1_path}")
+    engine_1 = load_engine(engine_1_path)
     context_1 = engine_1.create_execution_context()
     bindings_1, inputs_1, outputs_1 = setup_io(engine_1)
 
@@ -67,7 +75,7 @@ def preprocess(image, size=256):
         resample = Image.LANCZOS             # Older versions fallback
     image = image.resize((size, size), resample)
     image = np.array(image).transpose((2, 0, 1)).astype(np.float32) / 255.0
-    return np.expand_dims(image, axis=0)  # Add batch dim, shape [1, 3, 224, 224]
+    return np.expand_dims(image, axis=0)  # Add batch dim, shape [1, 3, 256, 256]
 
 def crop_roi(image, bbox, size=384):
     # bbox: [x1, y1, x2, y2] in normalized coords
@@ -110,27 +118,10 @@ def infer_1(path):
     bbox = (output_data_1[1].reshape(-1) / 256.0).tolist()
     tmc = (output_data_1[2].reshape(-1)).tolist()
 
-    # -------- Inference 2 --------
-    # roi = crop_roi(image, bbox, 384)
-
-    # input_host_2, input_device_2 = inputs_2[0]
-    # input_host_2[:] = roi.ravel()
-
-    # cuda.memcpy_htod_async(input_device_2, input_host_2, stream)
-    # context_2.execute_async_v2(bindings=bindings_2, stream_handle=stream.handle)
-
-    # output_data_2 = []
-    # for host_mem, device_mem in outputs_2:
-    #     cuda.memcpy_dtoh_async(host_mem, device_mem, stream)
-    #     output_data_2.append(host_mem)
-    # stream.synchronize()
-
-    # keypoints = output_data_2[0].reshape(-1).tolist()
-
     elapsed = time.time() - start
     bbox_str = [f'"{x:.4f}"' for x in bbox]
     tmc_str = [f'"{x:.4f}"' for x in tmc]
-    # keypoints_str = [f'{x:.4f}' for x in keypoints]
+
     print(f'{path}: {elapsed*1000:.2f} ms, confidence: {confidence:.4f}, bbox: {bbox_str}, tmc: {tmc_str}')
 
     return confidence, bbox, tmc

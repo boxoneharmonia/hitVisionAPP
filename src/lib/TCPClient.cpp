@@ -1,5 +1,6 @@
 #include "TCPClient.hpp"
 #include "file.hpp"
+#include "global_state.hpp"
 using namespace std;
 #define CHUNK_SIZE 1024
 
@@ -91,14 +92,14 @@ void TCPClient::sendFile(const string &ip, uint16_t port, const string &filePath
 void TCPThread()
 {
     TCPClient client;
-    string targetIP = "192.168.0.170";
+    string targetIP = "192.168.1.170";
     uint16_t targetPort = 6555;
 
     string imagePath;
     int imageIndex = -1;
     int imageIndexNew = 0;
 
-    while (1)
+    while (programRunning)
     {
         if (TCPSocketRunning)
         {
