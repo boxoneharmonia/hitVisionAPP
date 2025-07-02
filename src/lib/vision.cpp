@@ -27,84 +27,81 @@ void visionThread()
     VelocityEstimator vest(0.5f, 0.3f);
     PyCaller py(baseDir, "model");
     static bool modelLoaded = false;
-    while (programRunning)
+    while (visionRunning)
     {
-        if (visionRunning)
+        if (!modelLoaded) {
+            py.callFunction("load_model");
+            modelLoaded = true;
+        }
+        // vest.updateParam(1.0f/frameRate, 0.3f);
+        readIndexFile(imageIndexNew);
+        imageIndexNew--;
+        if (imageIndexNew > imageIndex)
         {
-            if (!modelLoaded) {
-                py.callFunction("load_model");
-                modelLoaded = true;
-            }
-            // vest.updateParam(1.0f/frameRate, 0.3f);
-            readIndexFile(imageIndexNew);
-            imageIndexNew--;
-            if (imageIndexNew > imageIndex)
+            imageIndex = imageIndexNew;
+            imagePath = folderPath + "/" + to_string(imageIndexNew) + ".bmp";
+            PyObject *args = toPyTuple(imagePath);
+            PyObject *ret = py.callFunctionWithRet("infer_1", args);
+            Py_DECREF(args);
+            if (ret && PyTuple_Check(ret) && PyTuple_Size(ret) == 3)
             {
-                imageIndex = imageIndexNew;
-                imagePath = folderPath + "/" + to_string(imageIndexNew) + ".bmp";
-                PyObject *args = toPyTuple(imagePath);
-                PyObject *ret = py.callFunctionWithRet("infer_1", args);
-                Py_DECREF(args);
-                if (ret && PyTuple_Check(ret) && PyTuple_Size(ret) == 3)
+                double confidence = PyFloat_AsDouble(PyTuple_GetItem(ret, 0));
+
+                PyObject *bbox_list = PyTuple_GetItem(ret, 1); // list of floats
+                PyObject *tmc_list = PyTuple_GetItem(ret, 2); // list of floats
+
+                if (PyList_Check(bbox_list) && PyList_Size(bbox_list) == 4)
                 {
-                    double confidence = PyFloat_AsDouble(PyTuple_GetItem(ret, 0));
-
-                    PyObject *bbox_list = PyTuple_GetItem(ret, 1); // list of floats
-                    PyObject *tmc_list = PyTuple_GetItem(ret, 2); // list of floats
-
-                    if (PyList_Check(bbox_list) && PyList_Size(bbox_list) == 4)
+                    for (Py_ssize_t i = 0; i < 4; ++i)
                     {
-                        for (Py_ssize_t i = 0; i < 4; ++i)
-                        {
-                            bbox[i] = PyFloat_AsDouble(PyList_GetItem(bbox_list, i));
-                        }
-                    }
-
-                    if (PyList_Check(tmc_list) && PyList_Size(tmc_list) == 3)
-                    {
-                        for (Py_ssize_t i = 0; i < 3; ++i)
-                        {
-                            tmc[i] = PyFloat_AsDouble(PyList_GetItem(tmc_list, i));
-                        }
-                    }
-
-                    if (tmc[2] < 10.0f) {
-                        bool arucoDetected = false;
-                        static array<float, 3> tMarker;
-                        static array<float, 4> qMarker;
-                        arucoDetected = arucoDetect(imagePath, cameraMatrix, distCoeffs, tMarker, qMarker);
-                        if (arucoDetected) {
-                            confidence = 1.0;
-                            tmc = tMarker;
-                            pose = qMarker;
-                        }
-                    }
-                
-                    vel = vest.update(tmc);
-
-                    Py_DECREF(bbox_list);
-                    Py_DECREF(tmc_list);
-                    Py_DECREF(ret);
-                    {
-                        std::lock_guard<std::mutex> lock(ddsMutex);
-                        packDectResult(confidence, bbox, dectResult);
-                        packPoseResult(tmc, vel, pose, poseResult);
+                        bbox[i] = PyFloat_AsDouble(PyList_GetItem(bbox_list, i));
                     }
                 }
-                else
+
+                if (PyList_Check(tmc_list) && PyList_Size(tmc_list) == 3)
                 {
-                    PyErr_Print();
+                    for (Py_ssize_t i = 0; i < 3; ++i)
+                    {
+                        tmc[i] = PyFloat_AsDouble(PyList_GetItem(tmc_list, i));
+                    }
+                }
+
+                if (tmc[2] < 10.0f) {
+                    bool arucoDetected = false;
+                    static array<float, 3> tMarker;
+                    static array<float, 4> qMarker;
+                    arucoDetected = arucoDetect(imagePath, cameraMatrix, distCoeffs, tMarker, qMarker);
+                    if (arucoDetected) {
+                        confidence = 1.0;
+                        tmc = tMarker;
+                        pose = qMarker;
+                    }
+                }
+            
+                vel = vest.update(tmc);
+
+                Py_DECREF(bbox_list);
+                Py_DECREF(tmc_list);
+                Py_DECREF(ret);
+                {
+                    std::lock_guard<std::mutex> lock(ddsMutex);
+                    packDectResult(confidence, bbox, dectResult);
+                    packPoseResult(tmc, vel, pose, poseResult);
                 }
             }
-        }
-        else
-        {
-            this_thread::sleep_for(chrono::seconds(1));
-            if (modelLoaded) {
-                py.callFunction("release");
-                modelLoaded = false;
+            else
+            {
+                PyErr_Print();
             }
         }
+        else {
+            this_thread::sleep_for(chrono::milliseconds(500));
+        }
+    }
+    this_thread::sleep_for(chrono::seconds(1));
+    if (modelLoaded) {
+        py.callFunction("release");
+        modelLoaded = false;
     }
 }
 

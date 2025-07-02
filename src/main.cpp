@@ -45,7 +45,9 @@ int main()
     // thread t3(UDPThread);
     // thread t3(TCPThread);
     thread t4(DDSSubThread);
-    thread t5(visionThread);
+    // thread t5(visionThread);
+    static thread t5;
+    static bool visionThreadStarted = false;
 
     // DDSPub_t* pub = DDSPub_create();
     // DDSPub_set_domain_id(pub, 1);
@@ -114,11 +116,21 @@ int main()
             // UDPSocketRunning = false;
             // TCPSocketRunning = false;
         }
-        if (poseBit)
+        if (poseBit && !visionThreadStarted)
         {
             visionRunning = true;
+            t5 = thread(visionThread);
+            visionThreadStarted = true;
         }
-        else
+        else if (!poseBit && visionThreadStarted)
+        {
+            visionRunning = false;
+            if (t5.joinable()) {
+                t5.join();           
+            }
+            visionThreadStarted = false;
+        }
+        else if (!poseBit)
         {
             visionRunning = false;
             const uint8_t tmp1[3] = {0x00, 0x00, 0x00};
