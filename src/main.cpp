@@ -6,7 +6,7 @@
 #include "file.hpp"
 #include "dds.hpp"
 #include "global_state.hpp"
-
+#include <arpa/inet.h>
 #include <csignal>
 
 void handleSignal(int)
@@ -157,7 +157,13 @@ int main()
         memcpy(telemetry + offset, type, sizeof(type)); offset += sizeof(type);
         memcpy(telemetry + offset, byte1, sizeof(byte1)); offset += sizeof(byte1);
         memcpy(telemetry + offset, dectResult, sizeof(dectResult)); offset += sizeof(dectResult);
-        memcpy(telemetry + offset, poseResult, sizeof(poseResult)); offset += sizeof(poseResult);
+        // memcpy(telemetry + offset, poseResult, sizeof(poseResult)); offset += sizeof(poseResult);
+        for (int i = 0; i < 10; i++) {
+            uint32_t tmp;
+            memcpy(&tmp, &poseResult[i], sizeof(tmp)); 
+            tmp = htonl(tmp); // Convert to network byte order
+            memcpy(telemetry + offset, &tmp, sizeof(tmp)); offset += sizeof(tmp);
+        }
         memcpy(telemetry + offset, flyWheel, sizeof(flyWheel)); offset += sizeof(flyWheel);}
 
         DDSPub(telemetry, TM_receive_cnt);
