@@ -113,6 +113,7 @@ bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoe
     vector<int> markerIds, validIds;
     vector<vector<Point2f>> markerCorners, rejectedCandidates, validCorners;
     vector<Vec3d> rvecs, tvecs;
+    static Mat flipYZ = (Mat_<double>(3,3) << 1, 0, 1, 0, -1, 0, 0, 0, -1);
 
     image = imread(path, IMREAD_GRAYSCALE);
     gray = image.clone();						
@@ -147,6 +148,7 @@ bool arucoDetect(const string &path, const Mat& cameraMatrix, const Mat& distCoe
         Mat R;
         array<float, 4> qMarker;
         Rodrigues(rvecs[i], R);
+        R = R * flipYZ;
         dcmToQuat(R, qMarker);
         quats.push_back(qMarker);
     }
