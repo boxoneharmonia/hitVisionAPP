@@ -7,7 +7,7 @@
 #include "file.hpp"
 #include "dds.hpp"
 #include "global_state.hpp"
-
+#include <arpa/inet.h>
 #include <csignal>
 
 void handleSignal(int)
@@ -41,15 +41,16 @@ int main()
     // TCPSocketRunning = false;
     visionRunning = false;
     controlRunning = 0x00;
-    bool controlThreadStarted = false;
 
     thread t1(writeThread);
     thread t2(readThread);
     // thread t3(UDPThread);
     // thread t3(TCPThread);
     thread t4(DDSSubThread);
-    thread t5(visionThread);
+    static thread t5;
+    static bool visionThreadStarted = false;
     static thread t6;
+    static bool controlThreadStarted = false;
 
     // DDSPub_t* pub = DDSPub_create();
     // DDSPub_set_domain_id(pub, 1);
@@ -118,11 +119,21 @@ int main()
             // UDPSocketRunning = false;
             // TCPSocketRunning = false;
         }
-        if (poseBit)
+        if (poseBit && !visionThreadStarted)
         {
             visionRunning = true;
+            t5 = thread(visionThread);
+            visionThreadStarted = true;
         }
-        else
+        else if (!poseBit && visionThreadStarted)
+        {
+            visionRunning = false;
+            if (t5.joinable()) {
+                t5.join();           
+            }
+            visionThreadStarted = false;
+        }
+        else if (!poseBit)
         {
             visionRunning = false;
             const uint8_t tmp1[3] = {0x00, 0x00, 0x00};
@@ -159,7 +170,13 @@ int main()
         memcpy(telemetry + offset, type, sizeof(type)); offset += sizeof(type);
         memcpy(telemetry + offset, byte1, sizeof(byte1)); offset += sizeof(byte1);
         memcpy(telemetry + offset, dectResult, sizeof(dectResult)); offset += sizeof(dectResult);
-        memcpy(telemetry + offset, poseResult, sizeof(poseResult)); offset += sizeof(poseResult);
+        // memcpy(telemetry + offset, poseResult, sizeof(poseResult)); offset += sizeof(poseResult);
+        for (int i = 0; i < 10; i++) {
+            uint32_t tmp;
+            memcpy(&tmp, &poseResult[i], sizeof(tmp)); 
+            tmp = htonl(tmp); // Convert to network byte order
+            memcpy(telemetry + offset, &tmp, sizeof(tmp)); offset += sizeof(tmp);
+        }
         memcpy(telemetry + offset, flyWheel, sizeof(flyWheel)); offset += sizeof(flyWheel);}
 
         DDSPub(telemetry, TM_receive_cnt);
