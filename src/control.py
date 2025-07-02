@@ -85,6 +85,16 @@ def load_model():
     print("<control.py><load_model> pycuda stream initialized.")
     print("<control.py><load_model> All models loaded.")
 
+def quat_formation(state0):
+    q0 = [state0[3]]
+    qv = state0[0:3]
+    q = q0+qv
+
+    omega = state0[4:7]
+    state = q+omega
+    return state
+
+
 def control_mode1(states):  # super large angle maneuver for 3 RWs
     global engine_c1, context_c1, bindings_c1, inputs_c1, outputs_c1, stream_c
 
@@ -94,7 +104,7 @@ def control_mode1(states):  # super large angle maneuver for 3 RWs
     print("<control.py><control_mode1> state tuple is", states)
     print("<control.py><control_mode1> input_host_c1 is ", input_host_c1)
     print("<control.py><control_mode1> input_device_c1 is ", input_device_c1)
-    input_host_c1[:] = np.array(states, dtype=np.float32)
+    input_host_c1[:] = np.array(quat_formation(states), dtype=np.float32)
     print("<control.py><control_mode1> numpy input loaded, it is", input_host_c1)
 
     cuda.memcpy_htod_async(input_device_c1, input_host_c1, stream_c)
@@ -130,7 +140,7 @@ def control_mode2(states):  # attitude tracker for 4 RWs
     print("<control.py><control_mode2> state tuple is", states)
     print("<control.py><control_mode2> input_host_c2 is ", input_host_c2)
     print("<control.py><control_mode2> input_device_c2 is ", input_device_c2)
-    input_host_c2[:] = np.array(states, dtype=np.float32)
+    input_host_c2[:] = np.array(quat_formation(states), dtype=np.float32)
     print("<control.py><control_mode2> numpy input loaded, it is", input_host_c2)
 
     cuda.memcpy_htod_async(input_device_c2, input_host_c2, stream_c)
@@ -166,7 +176,7 @@ def control_mode3(states):  # Behavior clone controller
     print("<control.py><control_mode3> state tuple is", states)
     print("<control.py><control_mode3> input_host_c3 is ", input_host_c3)
     print("<control.py><control_mode3> input_device_c3 is ", input_device_c3)
-    input_host_c3[:] = np.array(states, dtype=np.float32)
+    input_host_c3[:] = np.array(quat_formation(states), dtype=np.float32)
     print("<control.py><control_mode3> numpy input loaded, it is", input_host_c3)
 
     cuda.memcpy_htod_async(input_device_c3, input_host_c3, stream_c)
@@ -220,6 +230,7 @@ def release():
 
     gc.collect()
     print("<control.py><release> Intelligent control TensorRT resources released.")
+
 # if __name__ == '__main__':
     # load_model()
     # for i in range (10):

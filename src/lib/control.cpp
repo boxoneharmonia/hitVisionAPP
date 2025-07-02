@@ -70,7 +70,6 @@ vector<float> pyListToVector(PyObject* listObj)
 
 vector<double> ReadInputData()
 {
-    vector<double> inputVec(7);
     printf("<ReadInputData> reading pose_data\n ");
     std::ifstream file("/emmc/pose/pose_data", std::ios::binary);
     if (!file.is_open()) 
@@ -83,6 +82,8 @@ vector<double> ReadInputData()
     }
     
     int index0 = 64;
+    vector<double> inputVec;
+    
     for (int i = 0; i <7; i++)
     {
         int index = index0 + i*8;
@@ -95,8 +96,6 @@ vector<double> ReadInputData()
         inputVec.push_back(value);
         printf("<ReadInputData> data %d of value %f pushed into inputVec\n ", i, value);
     }
-    swap(inputVec[0], inputVec[3]);
-    printf("<ReadInputData> quaternions reshaped into standard format\n ");
     return inputVec;
 };
 
@@ -104,13 +103,15 @@ void ControlThread() {
     printf("<ControlThread>connected to ControlThread\n");
     const string baseDir = getExecutableDir();
     printf("<ControlThread>python path generated\n");
+    
+    printf("<ControlThread>begin connecting to control.py\n");
     PyCaller py(baseDir, "control");
     printf("<ControlThread>connected to control.py\n");
     static bool modelsloaded = false;
 
     vector<double> inputVec_old(7);
     inputVec_old.assign({0.984536, -0.00566, 0.15888, -0.073557, 0.0002701, -0.000227, 0.0003019});
-    while (1)
+    while (controlRunning != 0x00)
     {
         printf("<ControlThread>entered loop\n");
         if (controlRunning == 0x01)
@@ -144,7 +145,6 @@ void ControlThread() {
             }
             else
             {
-                GILGuard grd;
                 printf("<branch 0x01>inputVec updated, execate new output\n");
                 PyObject *pyInput = toPyList(inputVec);
                 printf("<branch 0x01>C++ vector converted to pylist\n");
@@ -174,6 +174,12 @@ void ControlThread() {
                     std::lock_guard<std::mutex> lock(ddsMutex);
                     packRotationWheel(outputVec, flyWheel);
                     printf("<branch 0x01>expected RW speed loaded to variable 'flyWheel'\n");
+                    printf("<branch 0x11>flywheel is: ");
+                    for (int j = 0; j < 4; j++)
+                    {
+                        printf("%u", flyWheel[j]);
+                    }
+                    std::cout << "\n";
                 }
                 inputVec_old = inputVec;
             }
@@ -209,7 +215,6 @@ void ControlThread() {
             }
             else
             {
-                GILGuard grd;
                 printf("<branch 0x10>inputVec updated, execate new output\n");
                 PyObject *pyInput = toPyList(inputVec);
                 printf("<branch 0x10>C++ vector converted to pylist\n");
@@ -239,6 +244,12 @@ void ControlThread() {
                     std::lock_guard<std::mutex> lock(ddsMutex);
                     packRotationWheel(outputVec, flyWheel);
                     printf("<branch 0x10>expected RW speed loaded to variable 'flyWheel'\n");
+                    printf("<branch 0x11>flywheel is: ");
+                    for (int j = 0; j < 4; j++)
+                    {
+                        printf("%u", flyWheel[j]);
+                    }
+                    std::cout << "\n";
                 }
                 inputVec_old = inputVec;
             }
@@ -274,7 +285,6 @@ void ControlThread() {
             }
             else
             {
-                GILGuard grd;
                 printf("<branch 0x11>inputVec updated, execate new output\n");
                 PyObject *pyInput = toPyList(inputVec);
                 printf("<branch 0x11>C++ vector converted to pylist\n");
@@ -304,20 +314,22 @@ void ControlThread() {
                     std::lock_guard<std::mutex> lock(ddsMutex);
                     packRotationWheel(outputVec, flyWheel);
                     printf("<branch 0x11>expected RW speed loaded to variable 'flyWheel'\n");
+                    printf("<branch 0x11>flywheel is: ");
+                    for (int j = 0; j < 4; j++)
+                    {
+                        printf("%u", flyWheel[j]);
+                    }
+                    std::cout << "\n";
                 }
                 inputVec_old = inputVec;
             }
         }
-        else
-        {
-            printf("<branch 0x00>No command, thread delaying\n");
-            if (modelsloaded)
-            {
-                py.callFunction("release");
-                modelsloaded = false;
-                printf("<branch 0x00>Detected occupied resources, auto released.\n");
-            }
-            this_thread::sleep_for(chrono::seconds(1));
-        }
+    }
+    printf("<ControlThread>No command, thread delaying\n");
+    if (modelsloaded)
+    {
+        py.callFunction("release");
+        modelsloaded = false;
+        printf("<branch 0x00>Detected occupied resources, auto released.\n");
     }
 }

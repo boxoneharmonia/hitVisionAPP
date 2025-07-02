@@ -25,7 +25,7 @@ void PyCaller::initialize()
         is_owner = true;
     }
     interpreter_owner_ = is_owner;
-    
+
     // GILGuard grd;
 
 
