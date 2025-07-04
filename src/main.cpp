@@ -163,7 +163,7 @@ int main()
         }
 
         const uint8_t type[2] = {0x00, 0x02};
-        uint8_t byte1[1] = {uint8_t(uint8_t(imageBit << 7) | uint8_t(dataTransBit << 6) | uint8_t(poseBit << 5) | uint8_t(controlBit << 4) | uint8_t(dExpEx))};
+        uint8_t byte1[1] = {uint8_t(uint8_t(imageBit << 7) | uint8_t(dataTransBit << 6) | uint8_t(poseBit << 5) | uint8_t((controlBit != 0x00) << 4) | uint8_t(dExpEx))};
         dectResult[0] = (dectResult[0]) | ((dFrameRateEx & 0x03) << 4) | ((dGainEx & 0x03) << 6);
 
         int offset = 0;
