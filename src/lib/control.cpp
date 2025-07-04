@@ -55,7 +55,7 @@ vector<double> ReadInputData()
         printf("<ReadInputData> pose_data opened successfully\n ");
     }
     
-    int index0 = 64;
+    int index0 = 65;
     vector<double> inputVec;
     
     for (int i = 0; i <7; i++)
@@ -64,8 +64,21 @@ vector<double> ReadInputData()
         file.seekg(index, std::ios::beg);
         char buffer[8];
         file.read(buffer, sizeof(buffer));
+        // printf("data %d is:", i);
+        // for (int j=0; j<8; j++)
+        // {
+        //     printf("%d ",buffer[j]);
+        // }
+        // printf("\n");
+        char* reversed = reverseArray(buffer, 8);
+        // printf("reserved data %d is:", i);
+        // for (int k=0; k<8; k++)
+        // {
+        //     printf("%d ",reversed[k]);
+        // }
+        // printf("\n");
         double value;
-        std::memcpy(&value, buffer, sizeof(double));
+        std::memcpy(&value, reversed, sizeof(double));
         inputVec.push_back(value);
     }
     return inputVec;

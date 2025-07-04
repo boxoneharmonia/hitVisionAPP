@@ -14,11 +14,6 @@ void ControlThread();
 PyObject *toPyList(std::vector<double> &vec);
 vector<float> pyListToVector(PyObject* listObj);
 vector<double> ReadInputData();
-// inline void packRotationWheel(const std::vector<uint8_t>& RW, uint8_t (&out_bytes)[4])
-// {
-//     int offset = 4;
-//     std::copy(RW.begin(), RW.end(), out_bytes + offset);
-// } 
 inline void packRotationWheel(std::vector<float>& input, uint8_t output[4]) 
 {
     // add a zero at the end of 3 RW control outputs
@@ -40,3 +35,15 @@ inline void packRotationWheel(std::vector<float>& input, uint8_t output[4])
     }
 }
 
+inline char* reverseArray(char* input, int size) 
+{
+if (size <= 0 || input == nullptr)
+return nullptr;
+
+char* reversed = new char[size]; // 动态分配内存
+for (int i = 0; i < size; ++i) 
+{
+reversed[i] = input[size - 1 - i]; // 反转元素
+}
+return reversed; // 返回新数组指针
+}
