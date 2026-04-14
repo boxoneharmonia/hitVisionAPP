@@ -5,6 +5,7 @@
 #include <thread>
 #include <fstream>
 #include <iomanip>
+#include <arpa/inet.h>
 
 #define SYNC_HEAD 0xEB90
 #define DATA_LENGTH 62
@@ -442,6 +443,11 @@ void DDSPub(uint8_t data_message[], const uint8_t &receive_cnt) {
 			float floats[10] = {0};
             memcpy(floats, read_back + 6, sizeof(floats));
 			for (int i = 0; i < 10; i++) {
+				int tmp;
+				memcpy(&tmp, &floats[i], sizeof(tmp));
+				tmp = ntohl(tmp);
+				memcpy(&floats[i], &tmp, sizeof(tmp));
+
                 cout << "float[" << i << "] = " << floats[i] << endl;
             }
         }

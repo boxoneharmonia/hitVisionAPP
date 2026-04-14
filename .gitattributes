@@ -1,4 +1,0 @@
-src/include/cJSON.h linguist-language=ignore
-src/lib/cJSON.c     linguist-language=ignore
-*.gn                linguist-language=Starlark
-*.gni               linguist-language=Starlark
